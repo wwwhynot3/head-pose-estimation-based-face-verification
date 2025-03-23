@@ -1,5 +1,9 @@
 import time
 from typing import Union
+
+import numpy as np
+
+from algorithm.face_alignment.onet import LiteONet
 from algorithm.face_detection.prcnn import PRCNN
 
 from fastapi import FastAPI
@@ -14,6 +18,7 @@ from torchvision import transforms
 from concurrent.futures import ThreadPoolExecutor
 from algorithm.hopenet.hopenet import HopeNet
 from algorithm.face_detection.prcnn import PRCNN
+from algorithm.face_alignment import *
 
 device = 'cpu'
 hopenet_model_path = 'resources/model/hopenet.pkl'
@@ -99,6 +104,7 @@ def face_pose_pipeline(img_path, output_path):
             face_coords.append((x1, y1, x2, y2))
     for (box, future) in zip(face_coords, futures):
         yaw, pitch, roll = future.result()
+        print('yaw:', yaw, 'pitch:', pitch, 'roll:', roll)
         tdx, tdy = calculate_td(box)
         draw_axis(frame, yaw, pitch, roll, tdx, tdy, (box[2] - box[0])/2)
     # 收集结果并绘制
@@ -117,12 +123,44 @@ def face_pose_pipeline(img_path, output_path):
     cv2.imwrite(output_path, frame)
     print(f'Result saved to {output_path}')
 
+def face_align():
+    img = cv2.imread('resources/pictures/input/1-2.jpeg')
+    yaw = 25.51507568359375
+    pitch = 19.894866943359375
+    roll = -15.88824462890625
+    # yaw = 0
+    # pitch = 0
+    # roll = 30
+    result = align_face(img, -pitch, yaw, -roll)
 
+    # 显示结果
+    # cv2.imshow("Original", img)
+    # cv2.imshow("Euler Corrected", result)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    cv2.imwrite('resources/pictures/output/1-2-out.jpeg', result)
+def face_point():
+    # 读取并处理图像
+    onet = LiteONet()
+    img = cv2.imread("resources/pictures/input/1-2.jpeg")
+    # face = cv2.resize(img, (48, 48))
+    # face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+    # h, w = face.shape[:2]
+    # print(face.shape)
+    # landmarks , _ = detect_landmarks([face],onet, return_relative=True, normalize=True)
+    # print(landmarks)
+    # landmarks = landmarks[0] * np.array([w, h])
+    # print(landmarks)
+    # # 绘制关键点
+    # for x, y in landmarks:
+    #     cv2.circle(face, (x, y), 1, (0, 255, 0), -1)
+    img = get_landmarks(img, onet)
+    cv2.imwrite("resources/pictures/output/1-2-landmarks.jpeg", img[0])
 # -------------------- 执行示例 --------------------
 if __name__ == "__main__":
-    face_pose_pipeline('resources/pictures/input/1.jpeg', 'resources/pictures/output/test_pr_hopenet.jpeg')
-
-
+    # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')
+    # face_align()
+    face_point()
 
 
 
@@ -171,7 +209,7 @@ if __name__ == "__main__":
 #
 # if __name__ == '__main__':
 #     from algorithm.face_detection import example
-#     from algorithm.hopenet import test_hopenet
+    from algorithm.hopenet import test_hopenet
 #     # example.test_pr()
 #     # time.sleep(10)
 #     test_hopenet()
