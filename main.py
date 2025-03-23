@@ -3,7 +3,7 @@ from typing import Union
 
 import numpy as np
 
-from algorithm.face_alignment.onet import LiteONet
+from algorithm.face_alignment.onet import *
 from algorithm.face_detection.prcnn import PRCNN
 
 from fastapi import FastAPI
@@ -140,22 +140,22 @@ def face_align():
     # cv2.destroyAllWindows()
     cv2.imwrite('resources/pictures/output/1-2-out.jpeg', result)
 def face_point():
-    # 读取并处理图像
-    onet = LiteONet()
-    img = cv2.imread("resources/pictures/input/1-2.jpeg")
-    # face = cv2.resize(img, (48, 48))
-    # face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
-    # h, w = face.shape[:2]
-    # print(face.shape)
-    # landmarks , _ = detect_landmarks([face],onet, return_relative=True, normalize=True)
-    # print(landmarks)
-    # landmarks = landmarks[0] * np.array([w, h])
-    # print(landmarks)
-    # # 绘制关键点
-    # for x, y in landmarks:
-    #     cv2.circle(face, (x, y), 1, (0, 255, 0), -1)
-    img = get_landmarks(img, onet)
-    cv2.imwrite("resources/pictures/output/1-2-landmarks.jpeg", img[0])
+    onet = KeypointNet()
+    img = cv2.imread('resources/pictures/input/1-1.jpeg')
+    land = detect_landmarks(img, onet, 'cpu')
+    print(land)
+    for point in land[0]:
+        cv2.circle(img, tuple(point), 2, (0, 255, 0), -1)
+    cv2.imwrite("resources/pictures/output/1-1-landmarks.jpeg", img)
+
+    # 返回形状 (5,2) 的tensor，对应5个关键点坐标
+
+    # 示例：批量检测
+    # batch_input = [img1, img2, img3]  # 多个已裁剪的人脸图像
+    # batch_points = detector.detect(batch_input)  # 形状 (3,5,2)
+    # img = cv2.imread("resources/pictures/input/1-2.jpeg")
+    #
+    # cv2.imwrite("resources/pictures/output/1-2-landmarks.jpeg", img[0])
 # -------------------- 执行示例 --------------------
 if __name__ == "__main__":
     # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')

@@ -30,7 +30,7 @@ def test_hopenet():
     ])
 
     # 3. 读取并处理图像
-    img = cv2.imread("resources/pictures/output/1_5out.jpeg")
+    img = cv2.imread("resources/pictures/input/1-2.jpeg")
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # 转换为RGB格式
     input_img = transform(img_rgb).unsqueeze(0)  # 增加batch维度
 
@@ -52,6 +52,6 @@ def test_hopenet():
     print(yaw_deg, pitch_deg, roll_deg)
     # 6. 绘制姿态轴并保存
     img = utils.draw_axis(img, yaw_deg, pitch_deg, roll_deg)
-    res = cv2.imwrite("resources/pictures/output/1_5_out.jpeg", img)
+    res = cv2.imwrite("resources/pictures/output/1_2_out.jpeg", img)
     print(f'write success: {res}')
     print('done')
