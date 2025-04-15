@@ -8,7 +8,7 @@ from algorithm.face_detection.prcnn import PRCNN
 
 from fastapi import FastAPI
 from algorithm.face_detection import *
-from algorithm.hopenet import *
+from algorithm.face_pose_estimation import *
 from algorithm.utils import *
 import cv2
 import torchvision
@@ -16,7 +16,7 @@ import torch
 from PIL import Image
 from torchvision import transforms
 from concurrent.futures import ThreadPoolExecutor
-from algorithm.hopenet.hopenet import HopeNet
+from algorithm.face_pose_estimation.hopenet import HopeNet
 from algorithm.face_detection.prcnn import PRCNN
 from algorithm.face_alignment import *
 
@@ -141,12 +141,27 @@ def face_align():
     cv2.imwrite('resources/pictures/output/1-2-out.jpeg', result)
 def face_point():
     onet = KeypointNet()
-    img = cv2.imread('resources/pictures/input/1-1.jpeg')
-    land = detect_landmarks(img, onet, 'cpu')
-    print(land)
-    for point in land[0]:
-        cv2.circle(img, tuple(point), 2, (0, 255, 0), -1)
-    cv2.imwrite("resources/pictures/output/1-1-landmarks.jpeg", img)
+    onet.eval()
+    imgs = [cv2.imread('resources/pictures/input/1_0.jpeg')]
+    land = detect_face(imgs.copy(), onet, device)
+    # 打印结果
+    for i, kpts in enumerate(land):
+        print(f"人脸{i + 1}关键点：")
+        print(f"左眼: ({kpts[0][0]:.10f}, {kpts[0][1]:.10f})")
+        print(f"右眼: ({kpts[1][0]:.10f}, {kpts[1][1]:.10f})")
+        print(f"鼻子: ({kpts[2][0]:.10f}, {kpts[2][1]:.10f})")
+        print(f"左嘴角: ({kpts[3][0]:.10f}, {kpts[3][1]:.10f})")
+        print(f"右嘴角: ({kpts[4][0]:.10f}, {kpts[4][1]:.10f})")
+        print()
+    # # print(land)
+    for img, points in zip(imgs, land):
+        for point in points:
+            x = int(point[0])
+            y = int(point[1])
+            print(point)
+            cv2.circle(img, (x, y), 2, (0, 255, 0), -1)
+
+    cv2.imwrite("resources/pictures/output/1_0_landmarks.jpeg", imgs[0])
 
     # 返回形状 (5,2) 的tensor，对应5个关键点坐标
 
@@ -157,10 +172,15 @@ def face_point():
     #
     # cv2.imwrite("resources/pictures/output/1-2-landmarks.jpeg", img[0])
 # -------------------- 执行示例 --------------------
+
+def recognition():
+    from algorithm.face_recognition.example import face_recognition_pipeline
+    face_recognition_pipeline(threshold=1)
 if __name__ == "__main__":
     # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')
     # face_align()
-    face_point()
+    # face_point()
+    recognition()
 
 
 
@@ -184,7 +204,7 @@ if __name__ == "__main__":
 #     boxes, probs = cnn.detect(frame)
 #     faces = crop_faces(frame, boxes)
 #     model =  HopeNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
-#     model.config('resources/model/hopenet.pkl',device)
+#     model.config('resources/model/face_pose_estimation.pkl',device)
 #     transform = get_hopenet_transformer()
 #     if faces is not None:
 #         for face in faces:
@@ -209,7 +229,7 @@ if __name__ == "__main__":
 #
 # if __name__ == '__main__':
 #     from algorithm.face_detection import example
-    from algorithm.hopenet import test_hopenet
-#     # example.test_pr()
+#     from algorithm.face_pose_estimation import test_hopenet
+#     example.test_pr()
 #     # time.sleep(10)
 #     test_hopenet()
