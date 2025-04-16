@@ -1,23 +1,9 @@
-import time
-from typing import Union
-
-import numpy as np
-
-from algorithm.face_alignment.onet import *
-from algorithm.face_detection.prcnn import PRCNN
-
-from fastapi import FastAPI
-from algorithm.face_detection import *
 from algorithm.face_pose_estimation import *
-from algorithm.utils import *
-import cv2
 import torchvision
-import torch
-from PIL import Image
 from torchvision import transforms
 from concurrent.futures import ThreadPoolExecutor
-from algorithm.face_pose_estimation.hopenet import HopeNet
-from algorithm.face_detection.prcnn import PRCNN
+from algorithm.model.hopenet import HopeNet
+from algorithm.model.prcnn import PRCNN
 from algorithm.face_alignment import *
 
 device = 'cpu'

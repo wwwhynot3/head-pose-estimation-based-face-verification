@@ -1,12 +1,10 @@
-import os
 import cv2
 import torch
-from torch.autograd import Variable
 from torchvision import transforms
 import torch.backends.cudnn as cudnn
 import torchvision
 import algorithm.face_pose_estimation.utils as utils
-import algorithm.face_pose_estimation.hopenet as hopenet
+import algorithm.model.hopenet as hopenet
 
 
 def test_hopenet():

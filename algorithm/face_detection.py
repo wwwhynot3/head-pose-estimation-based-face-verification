@@ -1,6 +1,11 @@
-from algorithm.face_detection import PRCNN
-
+from algorithm.model.prcnn import PRCNN
+from algorithm.base import prcnn
 import cv2
+
+def detect_face(frame) -> tuple[list, list]:
+    boxes, probs = prcnn.detect(frame)
+    return boxes, probs
+
 def test_pr():
     print('start')
     cnn = PRCNN(image_size=160, thresholds=[0.8, 0.9], device='cuda',min_face_size=40)
