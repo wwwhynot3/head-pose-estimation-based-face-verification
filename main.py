@@ -1,4 +1,9 @@
-from algorithm.face_pose_estimation import *
+import time
+
+import cv2
+
+from algorithm import face_pose_estimate_single
+from algorithm.face_pose_estimation_cp1 import *
 import torchvision
 from torchvision import transforms
 from concurrent.futures import ThreadPoolExecutor
@@ -206,6 +211,78 @@ def align():
     yaw_deg, pitch_deg, roll_deg = testt_hopenet(hopenet, input_img)
     mm = align_face(image=img, pitch=pitch_deg, yaw=yaw_deg, roll=roll_deg)
     cv2.imwrite("resources/pictures/output/1_0_out2_align.jpeg", mm)
+
+def batch_hopenet1():
+    from algorithm.face_pose_estimation_cp1 import batch_pose_estimate, draw_axis
+    from algorithm.face_pose_estimation_cp2 import face_pose_estimate_batch
+    from algorithm.face_pose_estimation_og import face_pose_estimate_single
+    from algorithm.face_detection import detect_face
+    from algorithm.base import prcnn, shuffledhopenet, hopenet
+    img = cv2.imread("resources/pictures/input/1.jpeg")
+    faces, probs = detect_face(img.copy(), min_prob=0.8)
+    count = 0
+    for face in faces:
+        yaw, pitch, roll = face_pose_estimate_single(hopenet, face)
+        print(yaw, pitch, roll)
+        face = face.copy()
+        face1 = face.copy()
+        draw_axis(face, yaw, pitch, roll)
+        cv2.imwrite(f"resources/pictures/output/1_{count}_out_og_hopenet.jpeg", face)
+        yaw, pitch, roll = face_pose_estimate_single(shuffledhopenet, face)
+        print(yaw, pitch, roll)
+        draw_axis(face1, yaw, pitch, roll)
+        cv2.imwrite(f"resources/pictures/output/1_{count}_out_og_shuffledhopenet.jpeg", face1)
+        count += 1
+
+    print("----------------")
+    # 截取时间
+    start = time.time()
+    res1 = batch_pose_estimate(hopenet, faces)
+    # 计算耗时
+    end = time.time()
+    print(f"batch_pose_estimate_hopenet time: {end - start:.4f} seconds")
+    start = time.time()
+    res3 = batch_pose_estimate(shuffledhopenet, faces)
+    end = time.time()
+    print(f"batch_pose_estimate_shuffledhopenet time: {end - start:.4f} seconds")
+    count = 0
+    for face, (yaw, pitch, roll), (yaw2, pitch2, roll2) in zip(faces, res1, res3):
+        # yaw_deg = (torch.sum(yaw_batch * idx_tensor) * 3 - 99).item()
+        # pitch_deg = (torch.sum(pitch_batch * idx_tensor) * 3 - 99).item()
+        # roll_deg = (torch.sum(roll_batch * idx_tensor) * 3 - 99).item()
+        print(yaw, pitch, roll)
+        face = face.copy()
+        face1 = face.copy()
+        draw_axis(face, yaw, pitch, roll)
+        cv2.imwrite(f"resources/pictures/output/1_{count}_out_cp1_hopenet.jpeg", face)
+        draw_axis(face1, yaw2, pitch2, roll2)
+        cv2.imwrite(f"resources/pictures/output/1_{count}_out_cp1_shuffledhopenet.jpeg", face1)
+        count += 1
+
+    print("---------------")
+
+    count = 0
+    start = time.time()
+    res2 = face_pose_estimate_batch(hopenet, faces)  #看起来比1对
+    end = time.time()
+    print(f"face_pose_estimate_batch_hopenet time: {end - start:.4f} seconds")
+    start = time.time()
+    res4 = face_pose_estimate_batch(shuffledhopenet, faces)
+    end = time.time()
+    print(f"face_pose_estimate_batch_shuffledhopenet time: {end - start:.4f} seconds")
+    for face, (yaw, pitch, roll), (yaw2, pitch2, roll2) in zip(faces, res2, res4):
+        # yaw_deg = (torch.sum(yaw_batch * idx_tensor) * 3 - 99).item()
+        # pitch_deg = (torch.sum(pitch_batch * idx_tensor) * 3 - 99).item()
+        # roll_deg = (torch.sum(roll_batch * idx_tensor) * 3 - 99).item()
+        print(yaw, pitch, roll)
+        face = face.copy()
+        face1 = face.copy()
+        draw_axis(face, yaw, pitch, roll)
+        cv2.imwrite(f"resources/pictures/output/1_{count}_out_cp2_hopenet.jpeg", face)
+        draw_axis(face1, yaw2, pitch2, roll2)
+        cv2.imwrite(f"resources/pictures/output/1_{count}_out_cp2_shuffledhopenet.jpeg", face1)
+        count += 1
+
     
 if __name__ == "__main__":
     # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')
@@ -213,7 +290,8 @@ if __name__ == "__main__":
     # face_point()
     # recognition()
     # compare_hopenet()
-    align()
+    # align()
+    batch_hopenet1()
 
 
 
@@ -237,7 +315,7 @@ if __name__ == "__main__":
 #     boxes, probs = cnn.detect(frame)
 #     faces = crop_faces(frame, boxes)
 #     model =  HopeNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
-#     model.config('resources/model/face_pose_estimation.pkl',device)
+#     model.config('resources/model/face_pose_estimation.bak.pkl',device)
 #     transform = get_hopenet_transformer()
 #     if faces is not None:
 #         for face in faces:
@@ -262,7 +340,7 @@ if __name__ == "__main__":
 #
 # if __name__ == '__main__':
 #     from algorithm.face_detection import example
-#     from algorithm.face_pose_estimation import test_hopenet
+#     from algorithm.face_pose_estimation.bak import test_hopenet
 #     example.test_pr()
 #     # time.sleep(10)
 #     test_hopenet()

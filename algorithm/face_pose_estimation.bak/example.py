@@ -3,7 +3,7 @@ import torch
 from torchvision import transforms
 import torch.backends.cudnn as cudnn
 import torchvision
-import algorithm.face_pose_estimation.utils as utils
+import algorithm.face_pose_estimation_cp1.utils as utils
 import algorithm.model.hopenet as hopenet
 
 
@@ -12,7 +12,7 @@ def test_hopenet():
 
     # 1. 加载Hopenet模型
     model = hopenet.HopeNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
-    saved_state_dict = torch.load('resources/model/face_pose_estimation.pkl', map_location=torch.device('cpu'))
+    saved_state_dict = torch.load('resources/model/face_pose_estimation.bak.pkl', map_location=torch.device('cpu'))
     model.load_state_dict(saved_state_dict)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 动态分配设备
     model = model.to(device)  # 替换model.cuda()

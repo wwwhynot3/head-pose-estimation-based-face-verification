@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from math import cos, sin
 import cv2
-from algorithm.base import shuffledhopenet
+from algorithm.base import shuffledhopenet, hopenet_transform
 
 # 全局配置
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -21,10 +21,10 @@ def _softmax_temperature(tensor, temperature):
     return F.softmax(scaled - scaled.max(dim=1, keepdim=True).values, dim=1)
 
 
-def _batch_pose_predict(batch_tensor):
+def _batch_pose_predict(model, batch_tensor):
     """批量姿态估计核心函数"""
     with torch.no_grad():
-        yaw, pitch, roll = hopenet_model(batch_tensor)
+        yaw, pitch, roll = model(batch_tensor)
 
     # 并行处理所有输出
     yaw_pred = _softmax_temperature(yaw, 1)
@@ -45,15 +45,10 @@ def face_pose_estimate_single(img):
     return _batch_pose_predict(input_tensor)[0]
 
 
-def face_pose_estimate_batch(img_list):
+def face_pose_estimate_batch(model, img_list):
     """批量图像姿态估计"""
     # 使用生成器表达式减少内存占用
     batch = torch.stack([hopenet_transform(img) for img in img_list]).to(device)
-    return _batch_pose_predict(batch)
+    return _batch_pose_predict(model, batch)
 
 
-# 以下保持原有工具函数不变
-def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size=100):
-# ...（保持原有实现不变）...
-
-# 保持其他工具函数不变

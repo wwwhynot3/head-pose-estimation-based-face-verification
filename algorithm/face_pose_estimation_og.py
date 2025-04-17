@@ -2,7 +2,6 @@ import torch
 from torchvision import transforms
 import torch.backends.cudnn as cudnn
 from algorithm.base import hopenet, shuffledhopenet, hopenet_transform, device
-import algorithm.face_pose_estimation.utils
 import numpy as np
 from math import cos, sin
 import torch.nn.functional as F
@@ -72,9 +71,9 @@ def _testt_hopenet(model, pic):
     return yaw_deg, pitch_deg, roll_deg
 
 
-def face_pose_estimate_single(img):
+def face_pose_estimate_single(model, img):
     # 确保模型在目标设备
-    model = shuffledhopenet.to(device)
+    model = model.to(device)
 
     # 预处理并添加batch维度
     input_img = hopenet_transform(img).unsqueeze(0).to(device)

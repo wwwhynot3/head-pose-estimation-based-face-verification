@@ -2,8 +2,8 @@ import os
 import cv2
 import numpy as np
 from pathlib import Path
-from base import *
-from model import MobileFaceNet, l2_norm
+from algorithm.base import *
+from algorithm.model import MobileFaceNet, l2_norm
 
 def __prepare_facebank():
     embeddings = []
