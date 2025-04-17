@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from algorithm.model.hopenet import HopeNet
 from algorithm.model.prcnn import PRCNN
 from algorithm.face_alignment import *
+from algorithm.base import *
 
 device = 'cpu'
 hopenet_model_path = 'resources/model/hopenet.pkl'
@@ -159,14 +160,60 @@ def face_point():
     # cv2.imwrite("resources/pictures/output/1-2-landmarks.jpeg", img[0])
 # -------------------- 执行示例 --------------------
 
-def recognition():
-    from algorithm.face_recognition.example import face_recognition_pipeline
-    face_recognition_pipeline(threshold=1)
+# def recognition():
+#     from algorithm.face_recognition.example import face_recognition_pipeline
+#     face_recognition_pipeline(threshold=1)
+def testt_hopenet(model, pic):
+    # 4. 推理预测
+    with torch.no_grad():
+        images = pic.to(device)  # 替换Variable(input_img.cuda())
+        yaw, pitch, roll = model(images)
+
+    # 5. 转换欧拉角[1](@ref)
+    # idx_tensor = torch.FloatTensor([i for i in range(66)]).cuda(args.gpu_id)
+    idx_tensor = torch.FloatTensor([i for i in range(66)]).to(device)
+    yaw_pred = utils.softmax_temperature(yaw.data, 1)
+    pitch_pred = utils.softmax_temperature(pitch.data, 1)
+    roll_pred = utils.softmax_temperature(roll.data, 1)
+
+    yaw_deg = (torch.sum(yaw_pred * idx_tensor, 1).cpu()[0] * 3 - 99).item()
+    pitch_deg = (torch.sum(pitch_pred * idx_tensor, 1).cpu()[0] * 3 - 99).item()
+    roll_deg = (torch.sum(roll_pred * idx_tensor, 1).cpu()[0] * 3 - 99).item()
+    return yaw_deg, pitch_deg, roll_deg
+    
+def compare_hopenet():
+    img = cv2.imread("resources/pictures/input/1_0.jpeg")
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # 转换为RGB格式
+    input_img = hopenet_transform(img_rgb).unsqueeze(0)  # 增加batch维度
+
+    yaw_deg, pitch_deg, roll_deg = testt_hopenet(hopenet, input_img)
+    # 6. 绘制姿态轴并保存
+    img1 = utils.draw_axis(img.copy(), yaw_deg, pitch_deg, roll_deg)
+    res = cv2.imwrite("resources/pictures/output/1_0_out1.jpeg", img1)
+    
+    yaw_deg, pitch_deg, roll_deg = testt_hopenet(shuffledhopenet, input_img)
+    # 6. 绘制姿态轴并保存
+    img2 = utils.draw_axis(img.copy(), yaw_deg, pitch_deg, roll_deg)
+    res = cv2.imwrite("resources/pictures/output/1_0_out2.jpeg", img2)
+    print(f'write success: {res}')
+    print('done')
+    
+def align():
+    img = cv2.imread("resources/pictures/input/1_0.jpeg")
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # 转换为RGB格式
+    input_img = hopenet_transform(img_rgb).unsqueeze(0)  # 增加batch维度
+
+    yaw_deg, pitch_deg, roll_deg = testt_hopenet(hopenet, input_img)
+    mm = align_face(image=img, pitch=pitch_deg, yaw=yaw_deg, roll=roll_deg)
+    cv2.imwrite("resources/pictures/output/1_0_out2_align.jpeg", mm)
+    
 if __name__ == "__main__":
     # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')
     # face_align()
     # face_point()
-    recognition()
+    # recognition()
+    # compare_hopenet()
+    align()
 
 
 

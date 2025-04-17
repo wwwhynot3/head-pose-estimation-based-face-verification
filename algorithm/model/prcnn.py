@@ -376,7 +376,7 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
 
 class PNet(nn.Module):
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained=True, model_path='resources/model/pnet.pt'):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 10, kernel_size=3)
@@ -393,9 +393,10 @@ class PNet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), '../../resources/model/pnet.pt')
-            state_dict = torch.load(state_dict_path)
+            # state_dict_path = os.path.join(os.path.dirname(__file__), '../../resources/model/pnet.pt')
+            state_dict = torch.load(model_path)
             self.load_state_dict(state_dict)
+            # self.eval()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -413,7 +414,7 @@ class PNet(nn.Module):
 
 class RNet(nn.Module):
 
-    def __init__(self, pretrained=True):
+    def __init__(self, pretrained=True, model_path='resources/model/rnet.pt'):
         super().__init__()
 
         self.conv1 = nn.Conv2d(3, 28, kernel_size=3)
@@ -433,9 +434,10 @@ class RNet(nn.Module):
         self.training = False
 
         if pretrained:
-            state_dict_path = os.path.join(os.path.dirname(__file__), '../../resources/model/rnet.pt')
-            state_dict = torch.load(state_dict_path)
+            # state_dict_path = os.path.join(os.path.dirname(__file__), '../../resources/model/rnet.pt')
+            state_dict = torch.load(model_path)
             self.load_state_dict(state_dict)
+            # self.eval()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -460,6 +462,7 @@ class PRCNN(nn.Module):
     def __init__(
         self, image_size=160, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7], factor=0.709, post_process=True,
+        pnet_path=None, rnet_path=None,
         select_largest=True, selection_method=None, keep_all=False, device=None
     ):
         super().__init__()
@@ -474,8 +477,8 @@ class PRCNN(nn.Module):
         self.keep_all = keep_all
         self.selection_method = selection_method
 
-        self.pnet = PNet()
-        self.rnet = RNet()
+        self.pnet = PNet(model_path=pnet_path)
+        self.rnet = RNet(model_path=rnet_path)
         # self.onet = ONet()
 
         self.device = device
@@ -485,6 +488,13 @@ class PRCNN(nn.Module):
 
         if not self.selection_method:
             self.selection_method = 'largest' if self.select_largest else 'probability'
+            
+    def eval(self):
+        self.pnet.eval()
+        self.rnet.eval()
+        print("evaled pnet")
+        print("evaled rnet")
+        return super().eval()
 
     def forward(self, img, save_path=None, return_prob=False):
 
@@ -652,6 +662,7 @@ class PRCNN(nn.Module):
             faces = faces[0]
 
         return faces
+
 
 
 def fixed_image_standardization(image_tensor):

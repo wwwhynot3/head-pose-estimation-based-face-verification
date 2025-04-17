@@ -1,138 +1,99 @@
 import cv2
 import numpy as np
 
-def euler_to_rotation_matrix(yaw, pitch, roll):
-    # Convert degrees to radians
-    yaw = np.deg2rad(yaw)
-    pitch = np.deg2rad(pitch)
-    roll = np.deg2rad(roll)
+def euler_to_rotation_matrix(pitch, yaw, roll):
+    """将欧拉角转换为3x3旋转矩阵"""
+    # 转换为弧度
+    pitch = np.radians(pitch)
+    yaw = np.radians(yaw)
+    roll = np.radians(roll)
 
-    # Calculate rotation matrix
-    R_x = np.array([[1, 0, 0],
-                    [0, np.cos(pitch), -np.sin(pitch)],
-                    [0, np.sin(pitch), np.cos(pitch)]])
+    # 绕X轴旋转（pitch）
+    Rx = np.array([
+        [1, 0, 0],
+        [0, np.cos(pitch), -np.sin(pitch)],
+        [0, np.sin(pitch), np.cos(pitch)]
+    ])
 
-    R_y = np.array([[np.cos(yaw), 0, np.sin(yaw)],
-                    [0, 1, 0],
-                    [-np.sin(yaw), 0, np.cos(yaw)]])
+    # 绕Y轴旋转（yaw）
+    Ry = np.array([
+        [np.cos(yaw), 0, np.sin(yaw)],
+        [0, 1, 0],
+        [-np.sin(yaw), 0, np.cos(yaw)]
+    ])
 
-    R_z = np.array([[np.cos(roll), -np.sin(roll), 0],
-                    [np.sin(roll), np.cos(roll), 0],
-                    [0, 0, 1]])
+    # 绕Z轴旋转（roll）
+    Rz = np.array([
+        [np.cos(roll), -np.sin(roll), 0],
+        [np.sin(roll), np.cos(roll), 0],
+        [0, 0, 1]
+    ])
 
-    R = np.dot(R_z, np.dot(R_y, R_x))
-    return R
+    return Rz @ Ry @ Rx
 
-
-def align_face(image, yaw, pitch, roll):
+def align_face(image, pitch, yaw, roll, f=1000):
+    """
+    使用欧拉角进行人脸对齐
+    :param image: 输入图像
+    :param pitch: 俯仰角（绕X轴）
+    :param yaw: 偏航角（绕Y轴）
+    :param roll: 翻滚角（绕Z轴）(hopenet传入的roll角为负值，需要取反)
+    :param f: 虚拟焦距
+    """
     h, w = image.shape[:2]
-    R = euler_to_rotation_matrix(yaw, pitch, roll)
+    
+    # 定义三维坐标点（以图像中心为原点）
+    src_3d = np.array([
+        [-w/2, -h/2, 0],
+        [w/2, -h/2, 0],
+        [w/2, h/2, 0],
+        [-w/2, h/2, 0]
+    ], dtype=np.float32)
 
-    # Define the center of the image
-    center = (w // 2, h // 2)
+    # 获取旋转矩阵
+    R = euler_to_rotation_matrix(pitch, yaw, -roll) # roll角取反
+    
+    # 应用旋转
+    rotated_3d = src_3d @ R.T  # 矩阵乘法
 
-    # Get the affine transformation matrix
-    affine_matrix = R[:2, :2]
-    translation_vector = R[:2, 2]
+    # 投影到2D平面（透视投影）
+    dst_2d = []
+    for (X, Y, Z) in rotated_3d:
+        scale = f / (Z + f + 1e-6)  # 防止除以零
+        x = X * scale + w/2
+        y = Y * scale + h/2
+        dst_2d.append([x, y])
+    
+    # 原始图像四点坐标
+    src_points = np.array([
+        [0, 0],
+        [w, 0],
+        [w, h],
+        [0, h]
+    ], dtype=np.float32)
 
-    # Apply the affine transformation
-    aligned_image = cv2.warpAffine(image, affine_matrix, (w, h), flags=cv2.INTER_LINEAR)
+    # 计算透视变换矩阵
+    M, _ = cv2.findHomography(src_points, np.array(dst_2d, dtype=np.float32))
+    
+    # 应用透视变换
+    aligned = cv2.warpPerspective(image, M, (w, h))
+    return aligned
 
-    return aligned_image
-
-
-# Example usage
-# image = cv2.imread('path_to_image.jpg')
-# yaw, pitch, roll = 10, 20, 30  # Example Euler angles
-# aligned_image = align_face(image, yaw, pitch, roll)
-#
-# cv2.imshow('Aligned Face', aligned_image)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-# import cv2
-# import numpy as np
-#
-#
-# def euler_to_rotation_matrix(pitch, yaw, roll):
-#     """将欧拉角转换为旋转矩阵[8](@ref)"""
-#     # 转换为弧度
-#     pitch = np.radians(pitch)
-#     yaw = np.radians(yaw)
-#     roll = np.radians(roll)
-#
-#     # 各轴旋转矩阵
-#     Rx = np.array([[1, 0, 0],
-#                    [0, np.cos(pitch), -np.sin(pitch)],
-#                    [0, np.sin(pitch), np.cos(pitch)]])
-#
-#     Ry = np.array([[np.cos(yaw), 0, np.sin(yaw)],
-#                    [0, 1, 0],
-#                    [-np.sin(yaw), 0, np.cos(yaw)]])
-#
-#     Rz = np.array([[np.cos(roll), -np.sin(roll), 0],
-#                    [np.sin(roll), np.cos(roll), 0],
-#                    [0, 0, 1]])
-#
-#     # 组合旋转矩阵（顺序：Yaw->Pitch->Roll）
-#     R = Rz @ Ry @ Rx
-#     return R[:2, :2]  # 取前两行用于仿射变换
-#
-#
-# def composite_transform(image, pitch, yaw, roll, face_points):
-#     """
-#     复合变换流程：
-#     1. 仿射变换矫正平面旋转
-#     2. 透视变换校正三维姿态
-#     """
-#     # 步骤1：仿射变换（矫正平面旋转）[1,4](@ref)
-#     R_inv = euler_to_rotation_matrix(-roll, -yaw, -pitch)  # 反向旋转
-#     M_affine = np.hstack([R_inv, [[0], [0]]])  # 构建仿射矩阵
-#
-#     # 应用仿射变换
-#     rows, cols = image.shape[:2]
-#     affine_img = cv2.warpAffine(image, M_affine, (cols, rows),
-#                                 flags=cv2.INTER_LINEAR,
-#                                 borderMode=cv2.BORDER_REPLICATE)
-#
-#     # 步骤2：透视变换（矫正三维姿态）[7,8](@ref)
-#     # 定义目标标准点（假设标准正面人脸坐标）
-#     dst_points = np.float32([[cols * 0.3, rows * 0.3],  # 左眼
-#                              [cols * 0.7, rows * 0.3],  # 右眼
-#                              [cols * 0.3, rows * 0.7],  # 左嘴角
-#                              [cols * 0.7, rows * 0.7]])  # 右嘴角
-#
-#     # 转换已矫正后的关键点坐标
-#     adjusted_points = cv2.transform(np.array([face_points]), M_affine)[0]
-#
-#     # 计算透视变换矩阵
-#     M_perspective, _ = cv2.findHomography(adjusted_points, dst_points,
-#                                           cv2.RANSAC, 5.0)
-#
-#     # 应用透视变换
-#     result = cv2.warpPerspective(affine_img, M_perspective, (cols, rows),
-#                                  flags=cv2.INTER_CUBIC)
-#
-#     return result
-#
-#
-# # 使用示例
-# if __name__ == "__main__":
-#     # 输入参数
-#     image = cv2.imread("face.jpg")
-#     pitch = 15  # 俯仰角（度）
-#     yaw = -10  # 偏航角（度）
-#     roll = 5  # 翻滚角（度）
-#
-#     # 假设通过人脸检测获取的四个关键点坐标（示例值）
-#     face_points = np.float32([[120, 80],  # 左眼
-#                               [280, 90],  # 右眼
-#                               [130, 300],  # 左嘴角
-#                               [270, 310]])  # 右嘴角
-#
-#     # 执行复合变换
-#     output = composite_transform(image, pitch, yaw, roll, face_points)
-#
-#     # 显示结果
-#     cv2.imshow("Original", image)
-#     cv2.imshow("Corrected", output)
-#     cv2.waitKey(0)
+# 使用示例
+if __name__ == "__main__":
+    # 加载图像
+    img = cv2.imread("input.jpg")
+    
+    # 假设检测到的欧拉角（单位：度）
+    pitch = -10  # 俯仰角（低头）
+    yaw = 15     # 偏航角（向右转头）
+    roll = 5     # 翻滚角（顺时针倾斜）
+    
+    # 进行对齐
+    aligned_img = align_face(img, pitch, yaw, roll)
+    
+    # 显示结果
+    cv2.imshow("Original", img)
+    cv2.imshow("Aligned", aligned_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
