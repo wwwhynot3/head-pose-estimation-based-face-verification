@@ -221,19 +221,26 @@ def batch_hopenet1():
     img = cv2.imread("resources/pictures/input/1.jpeg")
     faces, probs = detect_face(img.copy(), min_prob=0.8)
     count = 0
+    time1 = 0
+    time2 = 0
     for face in faces:
+        timee = time.time()
         yaw, pitch, roll = face_pose_estimate_single(hopenet, face)
+        time1 += time.time() - timee
         print(yaw, pitch, roll)
         face = face.copy()
         face1 = face.copy()
         draw_axis(face, yaw, pitch, roll)
         cv2.imwrite(f"resources/pictures/output/1_{count}_out_og_hopenet.jpeg", face)
+        timee = time.time()
         yaw, pitch, roll = face_pose_estimate_single(shuffledhopenet, face)
+        time2 += time.time() - timee
         print(yaw, pitch, roll)
         draw_axis(face1, yaw, pitch, roll)
         cv2.imwrite(f"resources/pictures/output/1_{count}_out_og_shuffledhopenet.jpeg", face1)
         count += 1
-
+    print(f"face_pose_estimate_single_hopenet time: {time1:.4f} seconds")
+    print(f"face_pose_estimate_single_shuffledhopenet time: {time2:.4f} seconds")
     print("----------------")
     # 截取时间
     start = time.time()
@@ -283,7 +290,44 @@ def batch_hopenet1():
         cv2.imwrite(f"resources/pictures/output/1_{count}_out_cp2_shuffledhopenet.jpeg", face1)
         count += 1
 
-    
+
+    """
+evaled pnetin.py                                                                                                                                                                                                                                                                ─╯
+evaled rnet
+17.170589447021484 3.1911277770996094 -14.508636474609375
+11.71731948852539 -5.685733795166016 -15.420495986938477
+-22.962799072265625 -9.291234970092773 2.519817352294922
+1.4910507202148438 -6.070512771606445 1.955657958984375
+-6.368053436279297 0.7957649230957031 3.666675567626953
+-9.68562126159668 -4.987209320068359 0.010837554931640625
+2.028522491455078 5.504722595214844 1.7347869873046875
+-26.82344627380371 -12.195236206054688 3.1277389526367188
+-5.509008407592773 -5.608829498291016 8.133968353271484
+-7.913858413696289 -7.318336486816406 6.507511138916016
+25.37651824951172 16.1729736328125 -15.831653594970703
+-7.523139953613281 -8.97901725769043 -9.252490997314453
+face_pose_estimate_single_hopenet time: 0.0527 seconds
+face_pose_estimate_single_shuffledhopenet time: 0.0325 seconds
+----------------
+batch_pose_estimate_hopenet time: 0.0259 seconds
+batch_pose_estimate_shuffledhopenet time: 0.0109 seconds
+15.788258 5.066221 -15.488399
+-23.66899 -6.414674 3.9046962
+-6.9554095 2.7689357 3.0921617
+0.81480503 7.1488433 1.1505942
+-6.7995067 -3.2303872 7.6436524
+24.754414 21.876995 -15.778517
+---------------
+face_pose_estimate_batch_hopenet time: 0.0125 seconds
+face_pose_estimate_batch_shuffledhopenet time: 0.0058 seconds
+17.16996 3.1916199 -14.510437
+-22.96283 -9.291824 2.5215607
+-6.36747 0.79797363 3.66671
+2.027916 5.505783 1.7331085
+-5.5097504 -5.60672 8.131279
+25.376038 16.17508 -15.8333435
+
+    """
 if __name__ == "__main__":
     # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')
     # face_align()
