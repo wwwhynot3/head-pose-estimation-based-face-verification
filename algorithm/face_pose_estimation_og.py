@@ -1,4 +1,5 @@
 import torch
+from torch.autograd import Variable
 from torchvision import transforms
 import torch.backends.cudnn as cudnn
 from algorithm.base import hopenet, shuffledhopenet, hopenet_transform, device
@@ -47,12 +48,13 @@ def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size = 100):
     return img
 
 def _testt_hopenet(model, pic):
-    # 确保模型在推理模式
-    model.eval()
+    # # 确保模型在推理模式
+    # model.eval()
 
     # 4. 推理预测(移除Variable调用，适配新版PyTorch)
     with torch.no_grad():
         images = pic.to(device)
+        # images = Variable(pic)
         yaw, pitch, roll = model(images)
 
     # 5. 转换欧拉角(直接创建tensor到目标设备)
@@ -73,7 +75,8 @@ def _testt_hopenet(model, pic):
 
 def face_pose_estimate_single(model, img):
     # 确保模型在目标设备
-    model = model.to(device)
+    # model = model.to(device)
+
 
     # 预处理并添加batch维度
     input_img = hopenet_transform(img).unsqueeze(0).to(device)

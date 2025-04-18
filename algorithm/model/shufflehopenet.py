@@ -1,19 +1,5 @@
 import torch
 import torch.nn as nn
-# from .utils import load_state_dict_from_url
-
-
-# __all__ = [
-#     'ShuffleNetV2', 'shufflenet_v2_x0_5', 'shufflenet_v2_x1_0',
-#     'shufflenet_v2_x1_5', 'shufflenet_v2_x2_0'
-# ]
-
-model_urls = {
-    'shufflenetv2_x0.5': 'https://download.pytorch.org/models/shufflenetv2_x0.5-f707e7126e.pth',
-    'shufflenetv2_x1.0': 'https://download.pytorch.org/models/shufflenetv2_x1-5666bf0f80.pth',
-    'shufflenetv2_x1.5': None,
-    'shufflenetv2_x2.0': None,
-}
 
 
 def channel_shuffle(x, groups):
@@ -97,6 +83,12 @@ class ShuffledHopeNet(nn.Module):
             nn.BatchNorm2d(output_channels),
             nn.ReLU(inplace=True),
         )
+        # self.conv1 = nn.Sequential(
+        #     nn.Conv2d(3, 64, 7, 2, 3),  # 对齐HopeNet的7x7卷积
+        #     nn.BatchNorm2d(64),
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(3, 2, 1)  # 与后续maxpool合并
+        # )
         input_channels = output_channels
 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)

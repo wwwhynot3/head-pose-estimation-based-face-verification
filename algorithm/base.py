@@ -4,15 +4,17 @@ import torchvision
 from algorithm.model import MobileFaceNet, PRCNN, HopeNet, ShuffledHopeNet
 from algorithm.model.shufflehopenet import ShuffledHopeNet
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')
 facebank_path='resources/face_lib'
 faces_dir='resources/faces'
 output_dir='resources/results'
-mobilefacenet_path = 'resources/model/MobileFace_Net'
+mobilefacenet_path = 'resources/model/mobilefacenet.pt'
 pnet_path = 'resources/model/pnet.pt'
 rnet_path = 'resources/model/rnet.pt'
-hopenet_path = 'resources/model/hopenet.pkl'
-shuffledhopenet_path = 'resources/model/shuffledhopenet.pkl'
+hopenet_path = 'resources/model/hopenet.pt'
+shuffledhopenet_path = 'resources/model/shuffledhopenet.pt'
+hopenetlite_path = 'resources/model/hopenetlite.pt'
 
 # 加载模型
 mobilefacenet = MobileFaceNet(512).to(device)
@@ -25,12 +27,20 @@ prcnn.eval()
 
 hopenet = HopeNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
 hopenet.load_state_dict(torch.load(hopenet_path, map_location=device))
-# hopenet = hopenet.to(device)  # 替换model.cuda()
+hopenet = hopenet.to(device)  # 替换model.cuda()
 hopenet.eval()
 
 shuffledhopenet = ShuffledHopeNet([4, 8, 4], [24, 116, 232, 464, 1024])
 shuffledhopenet.load_state_dict(torch.load(shuffledhopenet_path, map_location=device), strict=False)
+shuffledhopenet.to(device)
 shuffledhopenet.eval()
+
+from algorithm.model.hopenetlite import HopeNetLite
+hopenetlite = HopeNetLite()
+saved_state_dict = torch.load(hopenetlite_path, map_location="cpu")
+hopenetlite.load_state_dict(saved_state_dict, strict=False)
+hopenetlite.to(device)  # 替换model.cuda()
+hopenetlite.eval()
 
 # 图像预处理（保持与训练时一致）
 mobilefacenet_transform = trans.Compose([

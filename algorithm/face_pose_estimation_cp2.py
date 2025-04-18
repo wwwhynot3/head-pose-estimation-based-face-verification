@@ -4,14 +4,13 @@ import torch.nn.functional as F
 import numpy as np
 from math import cos, sin
 import cv2
-from algorithm.base import shuffledhopenet, hopenet_transform
+from algorithm.base import shuffledhopenet, hopenet_transform, device
 
 # 全局配置
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.set_num_threads(4)  # 根据CPU核心数调整线程数
+# torch.set_num_threads(4)  # 根据CPU核心数调整线程数
 
 # 初始化模型和预计算张量
-hopenet_model = shuffledhopenet.to(device).eval()
+# hopenet_model = shuffledhopenet.to(device).eval()
 idx_tensor = torch.arange(66, dtype=torch.float32, device=device)
 
 
@@ -47,8 +46,11 @@ def face_pose_estimate_single(img):
 
 def face_pose_estimate_batch(model, img_list):
     """批量图像姿态估计"""
+    #img从BGR转换为RGB
     # 使用生成器表达式减少内存占用
+    # batch = torch.stack([hopenet_transform(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in img_list]).to(device)
     batch = torch.stack([hopenet_transform(img) for img in img_list]).to(device)
+
     return _batch_pose_predict(model, batch)
 
 

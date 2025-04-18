@@ -6,26 +6,26 @@ import multiprocessing
 from PIL import Image
 import numpy as np
 
-from algorithm.base import hopenet, hopenet_transform
+from algorithm.base import hopenet, hopenet_transform, device
 from math import sin, cos
-# 预定义配置
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 32  # 根据内存调整
-MODEL_QUANTIZED = True
+# # 预定义配置
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# BATCH_SIZE = 32  # 根据内存调整
+# MODEL_QUANTIZED = True
 
-# 初始化模型（带量化）
-model = hopenet.to(device)
-if MODEL_QUANTIZED and device.type == "cpu":
-    model = torch.quantization.quantize_dynamic(
-        model,
-        {torch.nn.Linear},
-        dtype=torch.qint8
-    )
-model.eval()
-
-# 多线程优化
-torch.set_num_threads(multiprocessing.cpu_count() // 2)
-torch.set_num_interop_threads(multiprocessing.cpu_count() // 2)
+# # 初始化模型（带量化）
+# model = hopenet.to(device)
+# if MODEL_QUANTIZED and device.type == "cpu":
+#     model = torch.quantization.quantize_dynamic(
+#         model,
+#         {torch.nn.Linear},
+#         dtype=torch.qint8
+#     )
+# model.eval()
+#
+# # 多线程优化
+# torch.set_num_threads(multiprocessing.cpu_count() // 2)
+# torch.set_num_interop_threads(multiprocessing.cpu_count() // 2)
 
 # 预计算索引张量（避免重复计算）
 idx_tensor = torch.arange(66, dtype=torch.float32, device=device) * 3 - 99  # [1](@ref)
@@ -42,7 +42,7 @@ class BatchProcessor:
 
     def add_image(self, img):
         # 使用OpenCV替代PIL加速预处理
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # img = Image.fromarray(img)
         self.buffer.append(self.transform(img))
 
