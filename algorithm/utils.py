@@ -1,5 +1,4 @@
 import cv2
-from torchvision import transforms
 
 # 编写一个从多个人脸区域boxes中截取人脸的函数
 def crop_faces(image, boxes) -> list:
@@ -13,15 +12,6 @@ def read_image_rgb(path):
     img = cv2.imread(path)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img_rgb
-def get_hopenet_transformer(resize=224, center_crop=224, _mean=[0.485, 0.456, 0.406], _std=[0.229, 0.224, 0.225]):
-    transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize(resize),
-        transforms.CenterCrop(center_crop),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=_mean, std=_std)
-    ])
-    return transform
 
 def singleton(cls):
     """单例装饰器"""

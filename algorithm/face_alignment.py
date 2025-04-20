@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def euler_to_rotation_matrix(pitch, yaw, roll):
+def _euler_to_rotation_matrix(pitch, yaw, roll):
     """将欧拉角转换为3x3旋转矩阵"""
     # 转换为弧度
     pitch = np.radians(pitch)
@@ -51,7 +51,7 @@ def align_face(image, pitch, yaw, roll, f=1000):
     ], dtype=np.float32)
 
     # 获取旋转矩阵
-    R = euler_to_rotation_matrix(pitch, yaw, -roll) # roll角取反
+    R = _euler_to_rotation_matrix(pitch, yaw, -roll) # roll角取反
     
     # 应用旋转
     rotated_3d = src_3d @ R.T  # 矩阵乘法

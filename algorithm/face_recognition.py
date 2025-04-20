@@ -2,129 +2,190 @@ import os
 import cv2
 import numpy as np
 from pathlib import Path
+import torch
+from torchvision import transforms
 from algorithm.base import *
 from algorithm.model import MobileFaceNet, l2_norm
 
-def __prepare_facebank():
+def prepare_facebank(facebank_path, model, force_rebuild=False):
+    """
+    准备特征库的核心方法，支持批量处理
+    """
+    facebank_file = Path(facebank_path) / 'facebank.pth'
+    names_file = Path(facebank_path) / 'names.npy'
+
+    if not force_rebuild and facebank_file.exists() and names_file.exists():
+        targets = torch.load(facebank_file, map_location=device)
+        names = np.load(names_file)
+        return targets, names
+
     embeddings = []
     name_list = ['Unknown']
 
+    # 批量处理每个人物的图像
     for person_dir in Path(facebank_path).iterdir():
         if not person_dir.is_dir() or person_dir.name.startswith('.'):
             continue
 
-        embs = []
+        # 批量读取图像
+        img_batch = []
+        valid_files = []
         for img_file in person_dir.glob('*.*'):
-            if img_file.suffix.lower() not in ['.jpg', '.png', '.jpeg']:
-                continue
+            if img_file.suffix.lower() in ['.jpg', '.png', '.jpeg']:
+                img = cv2.imread(str(img_file))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img_batch.append(img)
+                valid_files.append(img_file)
 
-            # 读取并预处理图像（仅保留transform的resize）
-            img = cv2.imread(str(img_file))
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # 确保颜色通道正确
+        if not img_batch:
+            continue
 
-            # 特征提取与增强
-            with torch.no_grad():
-                # 原始图像
-                img_tensor = mobilefacenet_transform(img).unsqueeze(0).to(device)
-                emb = mobilefacenet(img_tensor)
+        # 批量处理原始图像和镜像图像
+        with torch.no_grad():
+            # 处理原始图像
+            orig_tensors = torch.stack([mobilefacenet_transform(img) for img in img_batch]).to(device)
+            orig_embs = model(orig_tensors)
 
-                # 镜像增强
-                mirror_img = cv2.flip(img, 1)
-                mirror_tensor = mobilefacenet_transform(mirror_img).unsqueeze(0).to(device)
-                emb_mirror = mobilefacenet(mirror_tensor)
+            # 处理镜像图像
+            mirror_imgs = [cv2.flip(img, 1) for img in img_batch]
+            mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
+            mirror_embs = model(mirror_tensors)
 
-                # 融合特征并归一化
-                fused_emb = l2_norm(emb + emb_mirror)
-                embs.append(fused_emb)
+            # 融合特征并归一化
+            fused_embs = l2_norm(orig_embs + mirror_embs)
 
-        if embs:
-            # 聚合特征并二次归一化（关键修正点）
-            avg_emb = torch.cat(embs).mean(dim=0, keepdim=True)
-            avg_emb = l2_norm(avg_emb)  # 必须再次归一化
+            # 计算平均特征并二次归一化
+            avg_emb = torch.mean(fused_embs, dim=0, keepdim=True)
+            avg_emb = l2_norm(avg_emb)
+
             embeddings.append(avg_emb)
             name_list.append(person_dir.name)
 
-    return torch.cat(embeddings) if embeddings else torch.Tensor(), np.array(name_list)
+    # 保存特征库
+    targets = torch.cat(embeddings) if embeddings else torch.Tensor()
+    names = np.array(name_list)
 
-os.makedirs(output_dir, exist_ok=True)
-
-# 加载/构建特征库
-facebank_file = Path(facebank_path) / 'facebank.pth'
-names_file = Path(facebank_path) / 'names.npy'
-
-if facebank_file.exists() and names_file.exists():
-    targets = torch.load(facebank_file, map_location=device)
-    names = np.load(names_file)
-else:
-    targets, names = __prepare_facebank()
     torch.save(targets, facebank_file)
     np.save(names_file, names)
-def face_recognition_pipeline(
-        threshold=0.6,  # 调整默认阈值到更合理的范围
-):
-    # 处理待识别图片
-    processed_count = 0
-    for img_file in Path(faces_dir).glob('*.*'):
-        if img_file.suffix.lower() not in ['.jpg', '.png', '.jpeg']:
-            continue
 
-        # 读取图像（仅做一次resize）
-        img = cv2.imread(str(img_file))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return targets, names
 
-        # 特征提取
-        with torch.no_grad():
-            # 原始图像
-            img_tensor = mobilefacenet_transform(img).unsqueeze(0).to(device)
-            emb = mobilefacenet(img_tensor)
 
-            # 镜像增强
-            mirror_img = cv2.flip(img, 1)
-            mirror_tensor = mobilefacenet_transform(mirror_img).unsqueeze(0).to(device)
-            emb_mirror = mobilefacenet(mirror_tensor)
 
-            # 融合特征并归一化
-            fused_emb = l2_norm(emb + emb_mirror)
 
-        # 验证特征归一化
-        print(f"特征模长: {torch.norm(fused_emb).item():.4f}")  # 应该严格等于1.0
+def _extract_embeddings_batch(images, model):
+    """
+    批量提取图像特征的统一方法
+    """
+    img_tensors = torch.stack([mobilefacenet_transform(img) for img in images]).to(device)
 
-        # 计算相似度（使用余弦相似度更合理）
-        if len(targets) > 0:
-            cosine_sim = torch.mm(fused_emb, targets.T).squeeze(0)  # [1, n] -> [n]
-            max_sim, max_idx = torch.max(cosine_sim, dim=0)
-            max_sim = max_sim.item()
-            max_idx = max_idx.item()
+    with torch.no_grad():
+        # 处理原始图像
+        orig_embs = model(img_tensors)
+
+        # 处理镜像图像
+        mirror_imgs = [cv2.flip(img, 1) for img in images]
+        mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
+        mirror_embs = model(mirror_tensors)
+
+        # 融合特征并归一化
+        fused_embs = l2_norm(orig_embs + mirror_embs)
+
+    return fused_embs
+
+
+def _face_recognition_batch(image_batch, model, threshold=0.6):
+    """
+    批量识别人脸的核心方法
+    """
+    # 批量提取特征
+    query_embs = _extract_embeddings_batch(image_batch, model)
+
+    # 计算相似度
+    if len(face_targets) > 0:
+        cosine_sim = torch.mm(query_embs, face_targets.T)  # [batch_size, num_targets]
+        max_sims, max_indices = torch.max(cosine_sim, dim=1)
+    else:
+        max_sims = torch.full((len(image_batch),), -1.0, device=device)
+        max_indices = torch.full((len(image_batch),), -1, device=device)
+
+    # 转换为CPU数据
+    max_sims = max_sims.cpu().numpy()
+    max_indices = max_indices.cpu().numpy()
+
+    # 生成识别结果
+    results = []
+    for sim, idx in zip(max_sims, max_indices):
+        if sim >= threshold and idx != -1:
+            results.append(face_names[idx + 1])  # +1 跳过Unknown
         else:
-            max_sim = -1
-            max_idx = -1
+            results.append("Unknown")
 
-        # 确定身份
-        name = "Unknown"
-        if max_sim >= threshold and max_idx != -1:
-            name = names[max_idx + 1]  # +1 跳过Unknown
+    return results, max_sims
 
-        # 可视化与保存
+
+def face_recognition_batch(faces, threshold=0.4, model=mobilefacenet):
+    """
+    处理整个目录的入口方法
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    image_nos = range(len(faces))
+    valid_images = faces
+
+    # 批量识别
+    results, scores = _face_recognition_batch(valid_images, model, threshold)
+
+    # # 保存结果
+    # for img_file, img, name, score in zip(image_nos, valid_images, results, scores):
+    #     print(f"Processing Face {img_file}: {name} ({score:.2f})")
+    #     display_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    #     cv2.putText(display_img, f"{name} ({score:.2f})", (10, 30),
+    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+    #     cv2.imwrite(str(Path(output_dir) / img_file.name), display_img)
+    #
+    # return f"Processed {len(valid_images)} images."
+    return zip(image_nos, results, scores)
+
+def process_directory(model=mobilefacenet, threshold=0.4):
+    """
+    处理整个目录的入口方法
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    image_paths = []
+    valid_images = []
+
+    # 收集有效图像
+    for img_file in Path(faces_dir).glob('*.*'):
+        if img_file.suffix.lower() in ['.jpg', '.png', '.jpeg']:
+            img = cv2.imread(str(img_file))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            image_paths.append(img_file)
+            valid_images.append(img)
+
+    # 批量识别
+    results, scores = _face_recognition_batch(valid_images, model, threshold)
+
+    # 保存结果
+    for img_file, img, name, score in zip(image_paths, valid_images, results, scores):
+        print(f"Processing {img_file.name}: {name} ({score:.2f})")
         display_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        cv2.putText(display_img, f"{name} ({max_sim:.2f})", (10, 30),
+        cv2.putText(display_img, f"{name} ({score:.2f})", (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
         cv2.imwrite(str(Path(output_dir) / img_file.name), display_img)
-        processed_count += 1
-        print(f"Processed: {img_file.name} -> {name} (score: {max_sim:.2f})")
 
-    return f"Completed! Processed {processed_count} images."
+    return f"Processed {len(valid_images)} images."
 
 
-# 示例调用
+# 使用示例
 if __name__ == "__main__":
-    print(face_recognition_pipeline(
-        threshold=0.6  # 使用余弦相似度时阈值设为0.6左右
-    ))
+    # 初始化模型
+    mobilefacenet = MobileFaceNet().to(device).eval()
 
-if __name__ == "__main__":
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    input = torch.Tensor(2, 3, 112, 112).to(device)
-    net = MobileFaceNet(512).to(device)
-    x = net(input)
-    print(x.shape)
+    # 准备特征库
+    facebank_path = "./facebank"
+    face_targets, face_names = prepare_facebank(facebank_path, mobilefacenet)
 
+    # 处理待识别目录
+    input_dir = "./faces"
+    output_dir = "./results"
+    process_directory(input_dir, output_dir, mobilefacenet, face_targets, face_names)
