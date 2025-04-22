@@ -3,16 +3,19 @@ from torch.nn import Linear, Conv2d, BatchNorm1d, BatchNorm2d, PReLU, Sequential
 import torch
 import math
 
-class Flatten(Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
 
 def l2_norm(input, axis=1):
     norm = torch.norm(input, 2, axis, True)
     output = torch.div(input, norm)
     return output
     # return input / norm.clamp(min=1e-12)
+
+class Flatten(Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
+
+
+
 
 
 ##################################  MobileFaceNet #############################################################
