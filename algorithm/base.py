@@ -35,19 +35,25 @@ mobilefacenet = MobileFaceNet(512).to(device)
 mobilefacenet.load_state_dict(torch.load(mobilefacenet_path, map_location=device))
 # mobilefacenet = quantize_model(mobilefacenet)
 mobilefacenet.eval()
-# mobilefacenet_qint8 = quantize_model(mobilefacenet)
-# mobilefacenet_qint8.to(device)
-# mobilefacenet_qint8.eval()
+
+mobilefacenet_qint8 = MobileFaceNet(512).to(device)
+mobilefacenet_qint8.load_state_dict(torch.load(mobilefacenet_path, map_location=device))
+mobilefacenet_qint8 = quantize_model(mobilefacenet)
+mobilefacenet_qint8.to(device)
+mobilefacenet_qint8.eval()
 
 
 prcnn = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=40,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
 # prcnn.load_state_dict(torch.load(prcnn_path, map_location=device))
 prcnn.eval()
 
+prcnn_qint8 = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=40,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device).quantize().eval()
+
 hopenet = HopeNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
 hopenet.load_state_dict(torch.load(hopenet_path, map_location=device))
 hopenet = hopenet.to(device)  # 替换model.cuda()
 hopenet.eval()
+
 
 shuffledhopenet = ShuffledHopeNet([4, 8, 4], [24, 116, 232, 464, 1024])
 shuffledhopenet.load_state_dict(torch.load(shuffledhopenet_path, map_location=device), strict=False)
@@ -60,9 +66,12 @@ hopenetlite.load_state_dict(saved_state_dict, strict=False)
 hopenetlite.to(device)  # 替换model.cuda()
 hopenetlite.eval()
 
-# hopenetlite_qint8 = quantize_model(hopenetlite)
-# hopenetlite_qint8.to(device)
-# hopenetlite_qint8.eval()
+hopenetlite_qint8 = HopeNetLite()
+saved_state_dict = torch.load(hopenetlite_path, map_location="cpu")
+hopenetlite_qint8.load_state_dict(saved_state_dict, strict=False)
+hopenetlite_qint8 = quantize_model(hopenetlite_qint8.to(device))
+hopenetlite_qint8.to(device)
+hopenetlite_qint8.eval()
 
 # 图像预处理（保持与训练时一致）
 mobilefacenet_transform = trans.Compose([
