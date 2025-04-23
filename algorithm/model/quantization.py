@@ -19,7 +19,7 @@ def auto_select_backend():
 
     torch.backends.quantized.engine = backend
     return backend
-
+auto_select_backend()
 def quantize_model(model):
     quantized_model = torch.quantization.quantize_dynamic(
         model,
