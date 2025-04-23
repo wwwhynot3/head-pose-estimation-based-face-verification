@@ -159,4 +159,4 @@ def prepare_facebank(facebank_path, model, force_rebuild=True):
 
     return targets, names
 # 准备特征库
-face_targets, face_names = prepare_facebank(facebank_path, mobilefacenet)
+face_targets, face_names = prepare_facebank(facebank_path, mobilefacenet_qint8)
