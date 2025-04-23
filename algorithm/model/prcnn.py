@@ -501,6 +501,7 @@ class PRCNN(nn.Module):
     def quantize(self):
         self.pnet = algorithm.model.quantize_model(self.pnet)
         self.rnet = algorithm.model.quantize_model(self.rnet)
+        return self
 
     def forward(self, img, save_path=None, return_prob=False):
 
