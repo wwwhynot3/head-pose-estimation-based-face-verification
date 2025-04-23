@@ -10,6 +10,8 @@ import numpy as np
 import os
 import cv2
 
+import algorithm.model
+
 
 def fixed_batch_process(im_data, model):
     batch_size = 512
@@ -495,6 +497,10 @@ class PRCNN(nn.Module):
         print("evaled pnet")
         print("evaled rnet")
         return super().eval()
+
+    def quantize(self):
+        self.pnet = algorithm.model.quantize_model(self.pnet)
+        self.rnet = algorithm.model.quantize_model(self.rnet)
 
     def forward(self, img, save_path=None, return_prob=False):
 

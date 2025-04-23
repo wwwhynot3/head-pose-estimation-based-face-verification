@@ -96,7 +96,7 @@ def batch_hopenet1():
 
     count = 0
     start = time.time()
-    res2 = face_pose_estimate_batch(hopenet, faces)  #看起来比1对
+    res2 = face_pose_estimate_batch(hopenet, faces)  # 看起来比1对
     end = time.time()
     print(f"face_pose_estimate_batch_hopenet time: {end - start:.4f} seconds")
     start = time.time()
@@ -162,7 +162,6 @@ face_pose_estimate_batch_shuffledhopenet time: 0.0058 seconds
 25.376038 16.17508 -15.8333435
 
     """
-
 
     ####
     """
@@ -247,6 +246,35 @@ face_pose_estimate_batch_hopenetlite time: 0.1283 seconds
     """
 
 
+def test_hopenet():
+    from algorithm.face_pose_estimation import face_pose_estimate_batch
+    imgs = [cv2.imread('resources/pictures/input/1-1.jpeg'),
+            cv2.imread('resources/pictures/input/1-2.jpeg'),]
+    start = time.time()
+    res = face_pose_estimate_batch(hopenetlite, imgs)
+    end = time.time()
+    print('res:', res)
+    print(f"face_pose_estimate_batch time: {end - start:.4f} seconds")
+    start = time.time()
+    res = face_pose_estimate_batch(hopenetlite_qint8, imgs)
+    end = time.time()
+    print('res:', res)
+    print(f"face_pose_estimate_batch_qint8 time: {end - start:.4f} seconds")
+
+def test_prcnn():
+    img = cv2.imread('resources/pictures/input/1.jpeg')
+    start = time.time()
+    res = prcnn.detect(img)
+    end = time.time()
+    print('res:', res)
+    print(f"prcnn time: {end - start:.4f} seconds")
+    prcnn.quantize()
+    start = time.time()
+    res = prcnn.detect(img)
+    end = time.time()
+    print('res:', res)
+    print(f"prcnn quantize time: {end - start:.4f} seconds")
+
 
 if __name__ == "__main__":
     # face_pose_pipeline('resources/pictures/input/1-1.jpeg', 'resources/pictures/output/test_pr_hopenet_1-1.jpeg')
@@ -257,8 +285,73 @@ if __name__ == "__main__":
     # align()
     # batch_hopenet1()
     from algorithm.face_recognition import process_directory
-
-    process_directory()
+    #
+    start = time.time()
+    res = process_directory(model=mobilefacenet)
+    end = time.time()
+    print('res:', res)
+    print(f"process_directory mobilefacenet time: {end - start:.4f} seconds")
+    start = time.time()
+    res = process_directory(model=mobilefacenet_qint8)
+    end = time.time()
+    print('res:', res)
+    print(f"process_directory mobilefacenet_qint8 time: {end - start:.4f} seconds")
+    test_hopenet()
+    test_prcnn()
+    """
+    in pc
+python main.py
+Quantization complete.
+evaled pnet
+evaled rnet
+Quantization complete.
+Processing 1-1.jpeg: faces (1.00)
+Processing 1.jpeg: faces (0.56)
+Processing img.png: Unknown (0.12)
+res: Processed 3 images.
+process_directory mobilefacenet time: 0.0924 seconds
+Processing 1-1.jpeg: faces (1.00)
+Processing 1.jpeg: faces (0.57)
+Processing img.png: Unknown (0.12)
+res: Processed 3 images.
+process_directory mobilefacenet_qint8 time: 0.0768 seconds
+res: [(np.float32(15.347046), np.float32(3.6364136), np.float32(-18.253593)), (np.float32(26.029152), np.float32(28.239418), np.float32(-19.621246))]
+face_pose_estimate_batch time: 0.0393 seconds
+res: [(np.float32(15.236572), np.float32(3.6002655), np.float32(-18.306671)), (np.float32(26.163773), np.float32(28.37442), np.float32(-19.73732))]
+face_pose_estimate_batch_qint8 time: 0.0331 seconds
+res: (array([[335.0714416503906, 180.60281372070312, 491.33197021484375,
+        336.86334228515625],
+       [34.31747817993164, 112.40814208984375, 111.23580932617188,
+        189.32647705078125],
+       [215.0029296875, 123.32942199707031, 288.69287109375,
+        197.01937866210938],
+       [327.3734436035156, 58.92006301879883, 394.365966796875,
+        125.91258239746094],
+       [137.33547973632812, 111.91500854492188, 203.30361938476562,
+        177.88314819335938],
+       [459.55108642578125, 71.63919067382812, 518.6659545898438,
+        130.7540283203125]], dtype=object), array([0.9992978572845459, 0.9994131326675415, 0.9997304081916809,
+       0.9997746348381042, 0.9993519186973572, 0.9928391575813293],
+      dtype=object))
+prcnn time: 0.0333 seconds
+Quantization complete.
+Quantization complete.
+res: (array([[335.1039733886719, 180.77023315429688, 489.72821044921875,
+        335.39447021484375],
+       [34.59978103637695, 112.51943969726562, 110.93315124511719,
+        188.85281372070312],
+       [215.58535766601562, 124.15595245361328, 288.14410400390625,
+        196.7147216796875],
+       [327.64324951171875, 59.126258850097656, 393.59271240234375,
+        125.07573699951172],
+       [137.43661499023438, 112.51763916015625, 202.82260131835938,
+        177.90362548828125],
+       [459.52764892578125, 71.21981811523438, 518.757080078125,
+        130.44924926757812]], dtype=object), array([0.999300479888916, 0.9993886947631836, 0.9997343420982361,
+       0.9997755885124207, 0.999350368976593, 0.9928662776947021],
+      dtype=object))
+prcnn quantize time: 0.0255 seconds
+    """
 # app = FastAPI()
 #
 #
