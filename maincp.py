@@ -256,11 +256,17 @@ def test_hopenet():
     print('res:', res)
     print(f"face_pose_estimate_batch time: {end - start:.4f} seconds")
 
-    # start = time.time()
-    # res = face_pose_estimate_batch(hopenetlite_qint8, imgs)
-    # end = time.time()
-    # print('res:', res)
-    # print(f"face_pose_estimate_batch_qint8 time: {end - start:.4f} seconds")
+    start = time.time()
+    res = face_pose_estimate_batch(hopenetlite_qint8, imgs)
+    end = time.time()
+    print('res:', res)
+    print(f"face_pose_estimate_batch_qint8 time: {end - start:.4f} seconds")
+
+    start = time.time()
+    res = face_pose_estimate_batch(hopenet_qint8, imgs)
+    end = time.time()
+    print('res:', res)
+    print(f"face_pose_estimate_batch_qint8 time: {end - start:.4f} seconds")
 
 def test_prcnn():
     img = cv2.imread('resources/pictures/input/1.jpeg')
@@ -269,12 +275,11 @@ def test_prcnn():
     end = time.time()
     print('res:', res)
     print(f"prcnn time: {end - start:.4f} seconds")
-    # prcnn.quantize()
-    # start = time.time()
-    # res = prcnn.detect(img)
-    # end = time.time()
-    # print('res:', res)
-    # print(f"prcnn quantize time: {end - start:.4f} seconds")
+    start = time.time()
+    res = prcnn_qint8.detect(img)
+    end = time.time()
+    print('res:', res)
+    print(f"prcnn quantize time: {end - start:.4f} seconds")
 
 
 if __name__ == "__main__":
@@ -292,11 +297,11 @@ if __name__ == "__main__":
     end = time.time()
     print('res:', res)
     print(f"process_directory mobilefacenet time: {end - start:.4f} seconds")
-    # start = time.time()
-    # res = process_directory(model=mobilefacenet_qint8)
-    # end = time.time()
-    # print('res:', res)
-    # print(f"process_directory mobilefacenet_qint8 time: {end - start:.4f} seconds")
+    start = time.time()
+    res = process_directory(model=mobilefacenet_qint8)
+    end = time.time()
+    print('res:', res)
+    print(f"process_directory mobilefacenet_qint8 time: {end - start:.4f} seconds")
     test_hopenet()
     test_prcnn()
     """

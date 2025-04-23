@@ -54,6 +54,12 @@ hopenet.load_state_dict(torch.load(hopenet_path, map_location=device))
 hopenet = hopenet.to(device)  # 替换model.cuda()
 hopenet.eval()
 
+hopenet_qint8 = HopeNet(torchvision.models.resnet.Bottleneck, [3, 4, 6, 3], 66)
+hopenet_qint8.load_state_dict(torch.load(hopenet_path, map_location=device))
+hopenet_qint8 = quantize_model(hopenet_qint8.to(device))
+hopenet_qint8.to(device)
+hopenet_qint8.eval()
+
 
 shuffledhopenet = ShuffledHopeNet([4, 8, 4], [24, 116, 232, 464, 1024])
 shuffledhopenet.load_state_dict(torch.load(shuffledhopenet_path, map_location=device), strict=False)
