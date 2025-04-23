@@ -3,6 +3,9 @@ import platform
 import torch
 
 
+"""
+在1+ ace3pro 的 termux环境中，qint8的量化看起来没有作用相关代码暂为注释
+"""
 def auto_select_backend():
     """自动选择量化后端"""
     arch = platform.machine().lower()
