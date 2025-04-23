@@ -255,11 +255,12 @@ def test_hopenet():
     end = time.time()
     print('res:', res)
     print(f"face_pose_estimate_batch time: {end - start:.4f} seconds")
-    start = time.time()
-    res = face_pose_estimate_batch(hopenetlite_qint8, imgs)
-    end = time.time()
-    print('res:', res)
-    print(f"face_pose_estimate_batch_qint8 time: {end - start:.4f} seconds")
+
+    # start = time.time()
+    # res = face_pose_estimate_batch(hopenetlite_qint8, imgs)
+    # end = time.time()
+    # print('res:', res)
+    # print(f"face_pose_estimate_batch_qint8 time: {end - start:.4f} seconds")
 
 def test_prcnn():
     img = cv2.imread('resources/pictures/input/1.jpeg')
@@ -268,12 +269,12 @@ def test_prcnn():
     end = time.time()
     print('res:', res)
     print(f"prcnn time: {end - start:.4f} seconds")
-    prcnn.quantize()
-    start = time.time()
-    res = prcnn.detect(img)
-    end = time.time()
-    print('res:', res)
-    print(f"prcnn quantize time: {end - start:.4f} seconds")
+    # prcnn.quantize()
+    # start = time.time()
+    # res = prcnn.detect(img)
+    # end = time.time()
+    # print('res:', res)
+    # print(f"prcnn quantize time: {end - start:.4f} seconds")
 
 
 if __name__ == "__main__":
@@ -291,13 +292,65 @@ if __name__ == "__main__":
     end = time.time()
     print('res:', res)
     print(f"process_directory mobilefacenet time: {end - start:.4f} seconds")
-    start = time.time()
-    res = process_directory(model=mobilefacenet_qint8)
-    end = time.time()
-    print('res:', res)
-    print(f"process_directory mobilefacenet_qint8 time: {end - start:.4f} seconds")
+    # start = time.time()
+    # res = process_directory(model=mobilefacenet_qint8)
+    # end = time.time()
+    # print('res:', res)
+    # print(f"process_directory mobilefacenet_qint8 time: {end - start:.4f} seconds")
     test_hopenet()
     test_prcnn()
+    """
+    in termux
+    Find System Architecture: aarch64
+Pick Quantize Backend: qnnpack
+Quantization complete.
+evaled pnet
+evaled rnet
+Quantization complete.
+Processing 1-1.jpeg: faces (0.70)
+Processing 1.jpeg: Unknown (0.25)
+Processing img.png: Unknown (0.14)
+res: Processed 3 images.
+process_directory mobilefacenet time: 0.2813 seconds
+[W423 11:50:35.664752642 qlinear_dynamic.cpp:252] Warning: Currently, qnnpack incorrectly ignores reduce_range when it is set to true; this may change in a future release. (function operator())
+Processing 1-1.jpeg: faces (0.43)
+Processing 1.jpeg: Unknown (0.22)
+Processing img.png: Unknown (0.19)
+res: Processed 3 images.
+process_directory mobilefacenet_qint8 time: 0.2954 seconds
+res: [(np.float32(15.347054), np.float32(3.6364136), np.float32(-18.253586)), (np.float32(26.029129), np.float32(28.239418), np.float32(-19.621262))]
+face_pose_estimate_batch time: 0.0828 seconds
+res: [(np.float32(15.284958), np.float32(3.6436386), np.float32(-18.28444)), (np.float32(26.022469), np.float32(28.361023), np.float32(-19.739746))]
+face_pose_estimate_batch_qint8 time: 0.0780 seconds
+res: (array([[335.955322265625, 187.75486755371094, 507.3313293457031,
+        359.130859375],
+       [323.2918701171875, 52.52897644042969, 400.56903076171875,
+        129.80613708496094],
+       [34.317466735839844, 112.40814208984375, 111.23580169677734,
+        189.32647705078125],
+       [468.3345947265625, 157.12509155273438, 544.0595703125,
+        232.85009765625],
+       [215.0029296875, 123.32939910888672, 288.69287109375,
+        197.01934814453125],
+       [135.19195556640625, 111.23753356933594, 202.1171875,
+        178.1627655029297]], dtype=object), array([0.9168219566345215, 0.9808536767959595, 0.9994131326675415,
+       0.9168219566345215, 0.9997304081916809, 0.9991869330406189],
+      dtype=object))
+prcnn time: 0.0379 seconds
+Quantization complete.
+Quantization complete.
+res: (array([[34.055511474609375, 112.22299194335938, 111.125, 189.29248046875],
+       [214.69488525390625, 123.37834167480469, 288.22369384765625,
+        196.90716552734375],
+       [327.13140869140625, 59.13850402832031, 394.15594482421875,
+        126.16305541992188],
+       [137.2427215576172, 111.97320556640625, 203.11407470703125,
+        177.84454345703125],
+       [459.599609375, 71.68840026855469, 518.9013671875,
+        130.9901885986328]], dtype=object), array([0.9994348883628845, 0.9997351765632629, 0.9997757077217102,
+       0.9993422627449036, 0.9931542873382568], dtype=object))
+prcnn quantize time: 0.0329 seconds
+    """
     """
     in pc
 python main.py

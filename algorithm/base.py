@@ -30,9 +30,9 @@ mobilefacenet = MobileFaceNet(512).to(device)
 mobilefacenet.load_state_dict(torch.load(mobilefacenet_path, map_location=device))
 # mobilefacenet = quantize_model(mobilefacenet)
 mobilefacenet.eval()
-mobilefacenet_qint8 = quantize_model(mobilefacenet)
-mobilefacenet_qint8.to(device)
-mobilefacenet_qint8.eval()
+# mobilefacenet_qint8 = quantize_model(mobilefacenet)
+# mobilefacenet_qint8.to(device)
+# mobilefacenet_qint8.eval()
 def prepare_facebank(facebank_path, model, force_rebuild=False):
     """
     准备特征库的核心方法，支持批量处理
@@ -118,9 +118,9 @@ hopenetlite.load_state_dict(saved_state_dict, strict=False)
 hopenetlite.to(device)  # 替换model.cuda()
 hopenetlite.eval()
 
-hopenetlite_qint8 = quantize_model(hopenetlite)
-hopenetlite_qint8.to(device)
-hopenetlite_qint8.eval()
+# hopenetlite_qint8 = quantize_model(hopenetlite)
+# hopenetlite_qint8.to(device)
+# hopenetlite_qint8.eval()
 
 # 图像预处理（保持与训练时一致）
 mobilefacenet_transform = trans.Compose([
