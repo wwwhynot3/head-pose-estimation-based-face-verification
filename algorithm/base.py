@@ -96,7 +96,7 @@ hopenet_transform = trans.Compose([
     ])
 
 
-def prepare_facebank(facebank_path, model, force_rebuild=False):
+def prepare_facebank(facebank_path, model, force_rebuild=True):
     """
     准备特征库的核心方法，支持批量处理
     """
