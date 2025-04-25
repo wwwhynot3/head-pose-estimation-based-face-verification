@@ -297,8 +297,8 @@ if __name__ == "__main__":
     # end = time.time()
     # print('res:', res)
     # print(f"process_directory mobilefacenet_qint8 time: {end - start:.4f} seconds")
-    test_hopenet()
-    test_prcnn()
+    # test_hopenet()
+    # test_prcnn()
     """
     in termux
     Find System Architecture: aarch64

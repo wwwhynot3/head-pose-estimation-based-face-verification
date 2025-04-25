@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 
 import cv2
@@ -18,8 +19,10 @@ from algorithm.model.hopenetlite import HopeNetLite
 
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = torch.device('cpu')
-facebank_path='resources/face_lib'
+facebank_path='resources/facebank'
 faces_dir='resources/faces'
+facebank_file_name = 'facebank.pth'
+facebank_name_list_name = 'name_list.npy'
 output_dir='resources/results'
 mobilefacenet_path = 'resources/model/mobilefacenet.pt'
 # mobilefacenet_path = 'resources/model/model_mobilefacenet.pth'
@@ -96,12 +99,12 @@ hopenet_transform = trans.Compose([
     ])
 
 
-def prepare_facebank(facebank_path, model, force_rebuild=True):
+def prepare_facebank(facebank_path, model, force_rebuild=False):
     """
     准备特征库的核心方法，支持批量处理
     """
-    facebank_file = Path(facebank_path) / 'facebank.pth'
-    names_file = Path(facebank_path) / 'names.npy'
+    facebank_file = Path(facebank_path) / facebank_file_name
+    names_file = Path(facebank_path) / facebank_name_list_name
 
     if not force_rebuild and facebank_file.exists() and names_file.exists():
         targets = torch.load(facebank_file, map_location=device)
@@ -110,36 +113,22 @@ def prepare_facebank(facebank_path, model, force_rebuild=True):
 
     embeddings = []
     name_list = ['Unknown']
-
     # 批量处理每个人物的图像
-    for person_dir in Path(facebank_path).iterdir():
-        if not person_dir.is_dir() or person_dir.name.startswith('.'):
+    for person in Path(facebank_path).iterdir():
+        if person.is_dir() or person.suffix == '.pth' or person.suffix == '.npy':
             continue
-
-        # 批量读取图像
-        img_batch = []
-        valid_files = []
-        for img_file in person_dir.glob('*.*'):
-            if img_file.suffix.lower() in ['.jpg', '.png', '.jpeg']:
-                img = cv2.imread(str(img_file))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                img_batch.append(img)
-                valid_files.append(img_file)
-
-        if not img_batch:
-            continue
-
+        img = cv2.imread(str(person))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        name_list.append(person.stem)
         # 批量处理原始图像和镜像图像
         with torch.no_grad():
             # 处理原始图像
-            orig_tensors = torch.stack([mobilefacenet_transform(img) for img in img_batch]).to(device)
+            orig_tensors = mobilefacenet_transform(img).to(device).unsqueeze(0)
+            mirror_imgs = cv2.flip(img, 1)
+            mirror_tensors = mobilefacenet_transform(mirror_imgs).to(device).unsqueeze(0)
+
             orig_embs = model(orig_tensors)
-
-            # 处理镜像图像
-            mirror_imgs = [cv2.flip(img, 1) for img in img_batch]
-            mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
             mirror_embs = model(mirror_tensors)
-
             # 融合特征并归一化
             fused_embs = l2_norm(orig_embs + mirror_embs)
 
@@ -149,7 +138,6 @@ def prepare_facebank(facebank_path, model, force_rebuild=True):
 
             embeddings.append(avg_emb)
             # embeddings.append(orig_embs)
-            name_list.append(person_dir.name)
 
     # 保存特征库
     targets = torch.cat(embeddings) if embeddings else torch.Tensor()
@@ -157,7 +145,46 @@ def prepare_facebank(facebank_path, model, force_rebuild=True):
 
     torch.save(targets, facebank_file)
     np.save(names_file, names)
-
+    print(f'{targets}')
+    print(f'{names}')
     return targets, names
-# 准备特征库
-face_targets, face_names = prepare_facebank(facebank_path, mobilefacenet)
+
+def init_facebank():
+    # 从resources/face_lib路径中有多个文件夹，每个文件夹是一个account, 文件夹下是用户上传的人脸，还有用户的facebank
+    # 打开facebank_path下的所有目录
+    facebank_map = dict()
+    for facebank in Path(facebank_path).iterdir():
+        if facebank.is_dir() and not facebank.name.startswith('.'):
+            # 读取facebank.pth文件
+            facebank_file = facebank / facebank_file_name
+            if facebank_file.exists():
+                targets = torch.load(facebank_file, map_location=device)
+                # 读取names.npy文件
+            else:
+                raise FileNotFoundError(f'File {facebank_file} not found.')
+            names_file = facebank / facebank_name_list_name
+            if names_file.exists():
+                names = np.load(names_file)
+            else: #抛出异常
+                raise FileNotFoundError(f'File {names_file} not found.')
+            facebank_map[facebank.name] = (targets, names)
+    return facebank_map
+
+def add_account(account):
+    # 创建一个新的账户文件夹
+    account_path = Path(facebank_path) / account
+    if not account_path.exists():
+        account_path.mkdir(parents=True, exist_ok=True)
+        print(f'Account {account} created.')
+    else:
+        print(f'Account {account} already exists.')
+
+def add_account_facebank(account, file_name, face, model=mobilefacenet):
+    facebank_dir = os.path.join(facebank_path, account, file_name)
+    cv2.imwrite(os.path.join(facebank_dir, file_name), face)
+    return prepare_facebank(facebank_dir, model, force_rebuild=True)
+
+facebank_map = init_facebank()
+# face_targets, face_names = prepare_facebank(facebank_path + '/1', mobilefacenet, force_rebuild=True)
+# prepare_facebank(facebank_path + '/zhengkai', mobilefacenet, force_rebuild=True)
+

@@ -21,16 +21,16 @@ def _extract_embeddings_batch(images, model):
         # 处理原始图像
         orig_embs = model(img_tensors)
 
-    #     # 处理镜像图像
-    #     mirror_imgs = [cv2.flip(img, 1) for img in images]
-    #     mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
-    #     mirror_embs = model(mirror_tensors)
-    #
-    #     # 融合特征并归一化
-    #     fused_embs = l2_norm(orig_embs + mirror_embs)
-    #
-    # return fused_embs
-        return orig_embs
+        # 处理镜像图像
+        mirror_imgs = [cv2.flip(img, 1) for img in images]
+        mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
+        mirror_embs = model(mirror_tensors)
+
+        # 融合特征并归一化
+        fused_embs = l2_norm(orig_embs + mirror_embs)
+
+    return fused_embs
+        # return orig_embs
 
 def face_recognition_batch(image_batch, model, threshold=0.6):
     """
