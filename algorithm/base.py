@@ -148,6 +148,7 @@ def prepare_facebank(facebank_path, model, force_rebuild=True):
             avg_emb = l2_norm(avg_emb)
 
             embeddings.append(avg_emb)
+            # embeddings.append(orig_embs)
             name_list.append(person_dir.name)
 
     # 保存特征库

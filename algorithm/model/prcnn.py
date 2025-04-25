@@ -534,6 +534,7 @@ class PRCNN(nn.Module):
             if len(box) == 0:
                 boxes.append(None)
                 probs.append([None])
+                # pass
             elif self.select_largest:
                 box_order = np.argsort((box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1]))[::-1]
                 box = box[box_order]
@@ -545,7 +546,7 @@ class PRCNN(nn.Module):
         boxes = np.array(boxes, dtype=object)
         probs = np.array(probs, dtype=object)
         if (
-            not isinstance(img, (list, tuple)) and 
+            not isinstance(img, (list, tuple)) and
             not (isinstance(img, np.ndarray) and len(img.shape) == 4) and
             not (isinstance(img, torch.Tensor) and len(img.shape) == 4)
         ):

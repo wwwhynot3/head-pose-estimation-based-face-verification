@@ -42,6 +42,9 @@ def face_pose_estimate_single(img):
 
 def face_pose_estimate_batch(model, img_list):
     """批量图像姿态估计"""
+
+    if len(img_list) == 0:
+        return []
     #img从BGR转换为RGB
     # 使用生成器表达式减少内存占用
     # batch = torch.stack([hopenet_transform(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in img_list]).to(device)

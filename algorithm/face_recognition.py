@@ -13,27 +13,31 @@ def _extract_embeddings_batch(images, model):
     """
     批量提取图像特征的统一方法
     """
+    if len(images) == 0:
+        return []
     img_tensors = torch.stack([mobilefacenet_transform(img) for img in images]).to(device)
 
     with torch.no_grad():
         # 处理原始图像
         orig_embs = model(img_tensors)
 
-        # 处理镜像图像
-        mirror_imgs = [cv2.flip(img, 1) for img in images]
-        mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
-        mirror_embs = model(mirror_tensors)
+    #     # 处理镜像图像
+    #     mirror_imgs = [cv2.flip(img, 1) for img in images]
+    #     mirror_tensors = torch.stack([mobilefacenet_transform(img) for img in mirror_imgs]).to(device)
+    #     mirror_embs = model(mirror_tensors)
+    #
+    #     # 融合特征并归一化
+    #     fused_embs = l2_norm(orig_embs + mirror_embs)
+    #
+    # return fused_embs
+        return orig_embs
 
-        # 融合特征并归一化
-        fused_embs = l2_norm(orig_embs + mirror_embs)
-
-    return fused_embs
-
-
-def _face_recognition_batch(image_batch, model, threshold=0.6):
+def face_recognition_batch(image_batch, model, threshold=0.6):
     """
     批量识别人脸的核心方法
     """
+    if len(image_batch) == 0:
+        return [], []
     # 批量提取特征
     query_embs = _extract_embeddings_batch(image_batch, model)
 
@@ -60,27 +64,27 @@ def _face_recognition_batch(image_batch, model, threshold=0.6):
     return results, max_sims
 
 
-def face_recognition_batch(faces, threshold=0.4, model=mobilefacenet):
-    """
-    处理整个目录的入口方法
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    image_nos = range(len(faces))
-    valid_images = faces
-
-    # 批量识别
-    results, scores = _face_recognition_batch(valid_images, model, threshold)
-
-    # # 保存结果
-    # for img_file, img, name, score in zip(image_nos, valid_images, results, scores):
-    #     print(f"Processing Face {img_file}: {name} ({score:.2f})")
-    #     display_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    #     cv2.putText(display_img, f"{name} ({score:.2f})", (10, 30),
-    #                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-    #     cv2.imwrite(str(Path(output_dir) / img_file.name), display_img)
-    #
-    # return f"Processed {len(valid_images)} images."
-    return zip(image_nos, results, scores)
+# def face_recognition_batch(faces, threshold=0.4, model=mobilefacenet):
+#     """
+#     处理整个目录的入口方法
+#     """
+#     # os.makedirs(output_dir, exist_ok=True)
+#     image_nos = range(len(faces))
+#     valid_images = faces
+#
+#     # 批量识别
+#     results, scores = _face_recognition_batch(valid_images, model, threshold)
+#
+#     # # 保存结果
+#     # for img_file, img, name, score in zip(image_nos, valid_images, results, scores):
+#     #     print(f"Processing Face {img_file}: {name} ({score:.2f})")
+#     #     display_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+#     #     cv2.putText(display_img, f"{name} ({score:.2f})", (10, 30),
+#     #                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+#     #     cv2.imwrite(str(Path(output_dir) / img_file.name), display_img)
+#     #
+#     # return f"Processed {len(valid_images)} images."
+#     return zip(image_nos, results, scores)
 
 def process_directory(model=mobilefacenet, threshold=0.4):
     """
@@ -99,7 +103,7 @@ def process_directory(model=mobilefacenet, threshold=0.4):
             valid_images.append(img)
 
     # 批量识别
-    results, scores = _face_recognition_batch(valid_images, model, threshold)
+    results, scores = face_recognition_batch(valid_images, model, threshold)
 
     # 保存结果
     for img_file, img, name, score in zip(image_paths, valid_images, results, scores):

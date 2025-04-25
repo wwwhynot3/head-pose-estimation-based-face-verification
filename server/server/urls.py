@@ -17,8 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from .biz import establish
-from .biz.api import api
+from .controller import establish
+from .controller.api import api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
