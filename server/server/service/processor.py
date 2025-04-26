@@ -1,19 +1,16 @@
 import cv2
 
 from algorithm import hopenetlite, mobilefacenet
-# from algorithm.base import prcnn
 from algorithm.face_detection import detect_face
-from algorithm.face_pose_estimation import face_pose_estimate_batch
+from algorithm import face_pose_estimate_batch
 from algorithm.face_alignment import align_faces_batch
-from algorithm.face_recognition import face_recognition_batch
+from algorithm import face_recognition_batch
 
 
 
 
 def process_frame(frame, min_probs=0.7, face_threshold=0.4):
     # 人脸检测
-    faces, probs = detect_face(frame)
-
 
     faces, probs = detect_face(frame, min_prob=min_probs)
 

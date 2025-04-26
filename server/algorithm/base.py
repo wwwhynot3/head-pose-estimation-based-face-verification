@@ -145,8 +145,8 @@ def prepare_facebank(facebank_path, model, force_rebuild=False):
 
     torch.save(targets, facebank_file)
     np.save(names_file, names)
-    print(f'{targets}')
-    print(f'{names}')
+    # print(f'{targets}')
+    # print(f'{names}')
     return targets, names
 
 def init_facebank():

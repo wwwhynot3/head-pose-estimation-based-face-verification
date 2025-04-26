@@ -3,7 +3,8 @@
 import os
 import sys
 
-
+import sys
+sys.path.append('../')
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'server.settings')

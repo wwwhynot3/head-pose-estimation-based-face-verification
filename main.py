@@ -4,7 +4,7 @@
 #     ret, frame = cap.read()
 #     if ret:
 #         cv2.imshow("frame", frame)
-from server.server.service import test
+from server import main
 
 if __name__ == "__main__":
-    test()
+    main()
