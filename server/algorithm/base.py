@@ -23,6 +23,7 @@ facebank_path='resources/facebank'
 faces_dir='resources/faces'
 facebank_file_name = 'facebank.pth'
 facebank_name_list_name = 'name_list.npy'
+facebank_default_account = 'default'
 output_dir='resources/results'
 mobilefacenet_path = 'resources/model/mobilefacenet.pt'
 # mobilefacenet_path = 'resources/model/model_mobilefacenet.pth'
@@ -170,21 +171,9 @@ def init_facebank():
             facebank_map[facebank.name] = (targets, names)
     return facebank_map
 
-def add_account(account):
-    # 创建一个新的账户文件夹
-    account_path = Path(facebank_path) / account
-    if not account_path.exists():
-        account_path.mkdir(parents=True, exist_ok=True)
-        print(f'Account {account} created.')
-    else:
-        print(f'Account {account} already exists.')
-
-def add_account_facebank(account, file_name, face, model=mobilefacenet):
-    facebank_dir = os.path.join(facebank_path, account, file_name)
-    cv2.imwrite(os.path.join(facebank_dir, file_name), face)
-    return prepare_facebank(facebank_dir, model, force_rebuild=True)
 
 facebank_map = init_facebank()
+# face_targets, face_names = facebank_map['1']
 # face_targets, face_names = prepare_facebank(facebank_path + '/1', mobilefacenet, force_rebuild=True)
 # prepare_facebank(facebank_path + '/zhengkai', mobilefacenet, force_rebuild=True)
 

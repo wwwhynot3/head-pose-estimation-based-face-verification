@@ -34,10 +34,10 @@ def _batch_pose_predict(model, batch_tensor):
     return list(zip(yaw_deg, pitch_deg, roll_deg))
 
 
-def face_pose_estimate_single(img):
+def face_pose_estimate_single(model, img):
     """单张图像姿态估计"""
     input_tensor = hopenet_transform(img).unsqueeze(0).to(device)
-    return _batch_pose_predict(input_tensor)[0]
+    return _batch_pose_predict(model, input_tensor)[0]
 
 
 def face_pose_estimate_batch(model, img_list):

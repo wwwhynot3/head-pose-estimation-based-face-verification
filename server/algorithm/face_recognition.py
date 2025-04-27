@@ -32,7 +32,7 @@ def _extract_embeddings_batch(images, model):
     return fused_embs
         # return orig_embs
 
-def face_recognition_batch(image_batch, model, threshold=0.6):
+def face_recognition_batch(image_batch, model, threshold=0.6, account=None):
     """
     批量识别人脸的核心方法
     """
@@ -40,7 +40,8 @@ def face_recognition_batch(image_batch, model, threshold=0.6):
         return [], []
     # 批量提取特征
     query_embs = _extract_embeddings_batch(image_batch, model)
-
+    if not account:
+        face_targets, face_names = facebank_map[facebank_default_account]
     # 计算相似度
     if len(face_targets) > 0:
         cosine_sim = torch.mm(query_embs, face_targets.T)  # [batch_size, num_targets]

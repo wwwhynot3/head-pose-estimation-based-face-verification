@@ -2,9 +2,17 @@ import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 
 const routes: Array<RouteRecordRaw> = [
-  {
+  // {
+  //   path: '',
+  //   redirect: '/folder/Inbox'
+  // },
+   {
     path: '',
-    redirect: '/folder/Inbox'
+    component: () => import ('../views/CameraShots.vue')
+  },
+  {
+    path: '/folder/CameraWebrtc',
+    component: () => import ('../views/CameraWebrtc.vue')
   },
   {
     path: '/folder/:id',

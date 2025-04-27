@@ -51,6 +51,7 @@ import {
   archiveSharp,
   bookmarkOutline,
   bookmarkSharp,
+  cameraOutline,
   heartOutline,
   heartSharp,
   mailOutline,
@@ -76,6 +77,12 @@ const appPages = [
     url: '/folder/Outbox',
     iosIcon: paperPlaneOutline,
     mdIcon: paperPlaneSharp,
+  },
+  {
+    title: 'WebrtcCamera',
+    url: '/folder/CameraWebrtc',
+    iosIcon: cameraOutline,
+    mdIcon: cameraOutline,
   },
   {
     title: 'Favorites',
