@@ -9,9 +9,17 @@
         </ion-toolbar>
       </ion-header>
   
-      <ion-content :fullscreen="true">
+      <ion-content :fullscreen="false">
         <div class="video-container">
-          <video ref="videoElement" autoplay playsinline></video>
+          <video ref="remoteVideo" autoplay playsinline></video>
+        </div>
+        <div class="video-container">
+          <video ref="localVideo" autoplay playsinline></video>
+        </div>
+      </ion-content>
+      <ion-content :fullscreen="false">
+        <div class="video-container">
+          <video ref="localVideo" autoplay playsinline></video>
         </div>
       </ion-content>
     </ion-page>
@@ -21,7 +29,8 @@
   import { ref, onMounted, onUnmounted } from 'vue';
   import { IonButtons, IonContent, IonHeader, IonMenuButton, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
   
-  const videoElement = ref<HTMLVideoElement>();
+  const localVideo = ref<HTMLVideoElement>();
+  const remoteVideo = ref<HTMLVideoElement>();
   let localStream: MediaStream;
   let peerConnection: RTCPeerConnection;
   const ws = new WebSocket('ws://127.0.0.1:8000/ws/webrtc');
@@ -37,8 +46,8 @@
         }
       });
       
-      if (videoElement.value) {
-        videoElement.value.srcObject = localStream;
+      if (localVideo.value) {
+        localVideo.value.srcObject = localStream;
       }
       
       initWebRTC();
@@ -49,50 +58,69 @@
   
   // 初始化WebRTC连接
   const initWebRTC = () => {
-    peerConnection = new RTCPeerConnection({
-      // 局域网内，不需要STUN/TURN服务器
-      // iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-    
+    peerConnection = new RTCPeerConnection();
+  
     // 添加本地视频轨道
     localStream.getTracks().forEach(track => {
+      console.log('Adding local track:', track);
       peerConnection.addTrack(track, localStream);
     });
   
+    // 监听远程轨道
+    peerConnection.ontrack = (event) => {
+      if (remoteVideo.value && event.streams[0]) {
+        console.log('Received remote stream:' , event.streams[0]);
+        remoteVideo.value.srcObject = event.streams[0];
+      }
+    };
+    
     // ICE候选处理
     peerConnection.onicecandidate = ({ candidate }) => {
-      console.log('ICE candidate:', candidate);
-      if (candidate) {
-        console.log('Sending candidate to server:', candidate);
+      // console.log('ICE candidate data:', candidate);
+      if (candidate?.candidate) {
+
         ws.send(JSON.stringify({
           type: 'candidate',
-          candidate: candidate.toJSON()
+          candidate: candidate.toJSON(),
         }));
       }
     };
-    // ws.send(JSON.stringify({
-    //   type: 'join',
-    //   room: 'room1'
-    // }));
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', peerConnection.iceConnectionState);
+    };
+    peerConnection.onconnectionstatechange = () => {
+      console.log('Peer connection state:', peerConnection.connectionState);
+    };
     // 处理信令服务器消息
     ws.onmessage = async (event) => {
       const message = JSON.parse(event.data);
       console.log('Received message:', message);
-      if (message.type === 'offer') {
-        await peerConnection.setRemoteDescription(message);
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        ws.send(JSON.stringify(answer));
+      if (message.type === 'answer') {
+        // 设置远端描述
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(message));
+      } 
+      else if (message.type === 'candidate') {
+        // 添加远端 ICE 候选
+        await peerConnection.addIceCandidate(new RTCIceCandidate(message.candidate));
+        // console.log('Received ICE candidate:', message.candidate);
+      }else if(message.type === 'data_channel'){
+        console.log('Received data channel:', message);
       }
     };
+  
+    // 创建并发送offer
+    peerConnection.createOffer().then(offer => {
+      peerConnection.setLocalDescription(offer)
+        .then(() => {
+          console.log('Sending offer:', offer);
+          ws.send(JSON.stringify(offer));
+        });
+    });
   };
   
-  // 生命周期
   onMounted(() => {
     if (navigator.mediaDevices) {
       initCamera();
-    } else {
-      console.error('MediaDevices API not supported');
     }
   });
   
@@ -102,6 +130,8 @@
     ws.close();
   });
   </script>
+  
+
   
   <style scoped>
   .video-container {
