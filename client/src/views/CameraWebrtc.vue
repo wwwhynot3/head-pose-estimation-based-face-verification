@@ -65,14 +65,7 @@
       console.log('Adding local track:', track);
       peerConnection.addTrack(track, localStream);
     });
-  
-    // 监听远程轨道
-    peerConnection.ontrack = (event) => {
-      if (remoteVideo.value && event.streams[0]) {
-        console.log('Received remote stream:' , event.streams[0]);
-        remoteVideo.value.srcObject = event.streams[0];
-      }
-    };
+
     
     // ICE候选处理
     peerConnection.onicecandidate = ({ candidate }) => {
@@ -116,6 +109,15 @@
           ws.send(JSON.stringify(offer));
         });
     });
+
+    // 监听远程轨道
+    peerConnection.ontrack = (event) => {
+      console.log('Received remote track:', event);
+      if (remoteVideo.value && event.streams[0]) {
+        console.log('Received remote stream:' , event.streams[0]);
+        remoteVideo.value.srcObject = event.streams[0];
+      }
+    };
   };
   
   onMounted(() => {

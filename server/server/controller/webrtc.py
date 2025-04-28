@@ -36,6 +36,22 @@ class ProcessedVideoTrack(VideoStreamTrack):
             await self.frame_queue.get()  # 丢弃旧帧
         await self.frame_queue.put(frame)
 
+class CameraVideoTrack(VideoStreamTrack):
+    def __init__(self):
+        super().__init__()
+        self.cap = cv2.VideoCapture(0)  # 打开摄像头
+
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
+        ret, frame = self.cap.read()
+        if not ret:
+            raise Exception("Camera frame not available")
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        video_frame = VideoFrame.from_ndarray(frame, format="rgb24")
+        video_frame.pts = pts
+        video_frame.time_base = time_base
+        return video_frame
+
 class WebRTCConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,7 +68,7 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
         ])
         self.pc = RTCPeerConnection(config)
         self.processed_track = ProcessedVideoTrack()
-
+        # self.processed_track = CameraVideoTrack()
         # # 添加候选收集监听
         @self.pc.on("icecandidate")
         async def on_icecandidate(candidate):
@@ -84,9 +100,9 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
             self.processed_track.running = False
         print("WebRTC disconnected.")
 
-    async def receive(self, text_data):
+    async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
-        print(f'{self.pc.connectionState}')
+        # print(f'{self.pc.connectionState}')
         if data['type'] == 'offer':
             await self.handle_offer(data)
         elif data['type'] == 'candidate':
@@ -100,16 +116,43 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
         
 
     async def handle_candidate(self, data):
-        print(f'Received ICE candidate')
+        # print(f'Received ICE candidate')
         candidate = aiortc.sdp.candidate_from_sdp(data["candidate"])
         candidate.sdpMid = data["sdpMid"]
         candidate.sdpMLineIndex = data["sdpMLineIndex"]
         await self.pc.addIceCandidate(candidate)
 
     async def handle_offer(self, offer_data):
+        # 处理传入的视频流
+        @self.pc.on("track")
+        async def on_track(track):
+            print(f"Track received: {track.kind}")
+            if track.kind == "video":
+                while True:
+                    try:
+                        frame = await track.recv()
+                        print("Received video frame...")
+                        # 示例：处理接收到的视频帧
+                        img = frame.to_ndarray(format="bgr24")
+                        print(1)
+                        processed = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        # cv2.imshow("Processed Frame", processed)
+                        print(2)
+                        processed_frame = VideoFrame.from_ndarray(
+                            processed,
+                            format="gray"
+                        )
+                        print(3)
+                        await self.processed_track.put_frame(processed_frame)
+                    except asyncio.CancelledError:
+                        print("Video track processing cancelled.")
+                        break
+                    except Exception as e:
+                        print(f"Error processing video frame: {e}")
+                        break
         # print(f"Handling SDP Offer...{offer_data['sdp']}")
         # 添加处理轨道
-        # self.pc.addTrack(self.processed_track)
+        self.pc.addTrack(self.processed_track)
         # candidate = aiortc.sdp.candidate_from_sdp(offer_data["sdp"])
         # 设置ICE候选
         # self.pc.addIceCandidate(candidate)
@@ -130,30 +173,7 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
             "sdp": answer.sdp
         }))
 
-        # 处理传入的视频流
-        @self.pc.on("track")
-        async def on_track(track):
-            print(f"Track received: {track.kind}")
-            if track.kind == "video":
-                while True:
-                    try:
-                        frame = await track.recv()
-                        img = frame.to_ndarray(format="bgr24")
-                        cv2.imshow("Received Frame", img)
-                        # 示例：将帧转为灰度
-                        processed = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                        processed_frame = VideoFrame.from_ndarray(
-                            processed, 
-                            format="bgr24"  # 注意格式匹配
-                        )
-                        
-                        await self.processed_track.put_frame(processed_frame)
-                    except asyncio.CancelledError:
-                        print("Video track processing cancelled.")
-                        break
-                    except Exception as e:
-                        print(f"Error processing video frame: {e}")
-                        break
+
                     
     async def handle_data(self, data):
         print(f"Handling extra data: {data}")
