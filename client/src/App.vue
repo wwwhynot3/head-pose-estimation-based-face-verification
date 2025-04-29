@@ -3,7 +3,7 @@
     <ion-content :fullscreen="false">
       <div class="video-container">
         <button class="toggle-button" @click="toggleVideoDisplayMode">
-          ChangeView
+          🔄
         </button>
         <!-- 视频容器添加 flex 居中 -->
         <div
@@ -68,9 +68,35 @@
           </button>
         </div>
         <div class="button-group">
-          <button @click="selectSource('camera')">📷 Camera</button>
-          <button @click="selectSource('network')">🌐 Network Video</button>
-          <button @click="selectSource('file')">📁 Local File</button>
+          <button @click="selectSource('camera')">📷 本地相机</button>
+          <button @click="selectSource('network')">🌐 网络视频源</button>
+          <button @click="selectSource('file')">📁 本地文件</button>
+        </div>
+      </div>
+    </div>
+    <div
+      v-if="showCameraSelection"
+      class="modal-overlay"
+      @click.self="showCameraSelection = false"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h3>选择摄像头</h3>
+          <button
+            class="close-button"
+            @click.stop="showCameraSelection = false"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="button-group">
+          <button
+            v-for="device in videoDevices"
+            :key="device.deviceId"
+            @click="selectCamera(device.deviceId)"
+          >
+            {{ device.label || `摄像头 ${device.deviceId + 1}` }}
+          </button>
         </div>
       </div>
     </div>
@@ -93,6 +119,25 @@ const isHovering = ref(false);
 const videoDisplayMode = ref<"localStream" | "remoteStream" | "bothStream">(
   "localStream"
 );
+const showCameraSelection = ref(false);
+const videoDevices = ref<MediaDeviceInfo[]>([]);
+
+// 获取视频设备列表
+const getVideoDevices = async () => {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    videoDevices.value = devices.filter(
+      (device) => device.kind === "videoinput"
+    );
+
+    // 自动选择第一个摄像头（如果只有一个）
+    if (videoDevices.value.length === 1) {
+      selectCamera(videoDevices.value[0].deviceId);
+    }
+  } catch (error) {
+    console.error("获取摄像头列表失败:", error);
+  }
+};
 
 // 切换视频显示模式
 const toggleVideoDisplayMode = () => {
@@ -107,7 +152,11 @@ const toggleVideoDisplayMode = () => {
 const selectSource = async (sourceType: "camera" | "network" | "file") => {
   try {
     if (sourceType === "camera") {
-      await switchVideoSource("camera");
+      // await switchVideoSource("camera");
+      await getVideoDevices();
+      if (videoDevices.value.length > 1) {
+        showCameraSelection.value = true;
+      }
     } else if (sourceType === "network") {
       const url = prompt("Enter the network video URL:");
       if (url) {
@@ -131,6 +180,16 @@ const selectSource = async (sourceType: "camera" | "network" | "file") => {
     console.error("Error selecting video source:", error);
   }
 };
+// 新增摄像头选择方法
+const selectCamera = async (deviceId: string) => {
+  try {
+    showCameraSelection.value = false;
+    await switchVideoSource("camera", deviceId);
+  } catch (error) {
+    console.error("切换摄像头失败:", error);
+    alert("无法切换摄像头，请检查设备权限");
+  }
+};
 const switchVideoSource = async (
   sourceType: "camera" | "network" | "file",
   source?: string
@@ -142,10 +201,22 @@ const switchVideoSource = async (
     }
     if (sourceType === "camera") {
       // 使用摄像头作为视频源
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+      // localStream = await navigator.mediaDevices.getUserMedia({
+      //   video: true,
+      //   audio: false,
+      // });
+      const constraints: MediaStreamConstraints = {
+        video: source
+          ? {
+              deviceId: { exact: source },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            }
+          : true,
         audio: false,
-      });
+      };
+
+      localStream = await navigator.mediaDevices.getUserMedia(constraints);
     } else if (sourceType === "network" && source) {
       // 使用网络视频源
       localStream = await fetchNetworkStream(source);
@@ -305,11 +376,21 @@ const adjustVideoSize = (event: Event) => {
   }
 };
 onMounted(() => {
-  if (navigator.mediaDevices) {
-    // switchVideoSource("camera").then(() => {
-    //   initWebRTC();
-    // });
-  }
+  // if (navigator.mediaDevices) {
+  //   // switchVideoSource("camera").then(() => {
+  //   //   initWebRTC();
+  //   // });
+  // }
+  async () => {
+    try {
+      // 先获取基础流以激活设备枚举
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      await getVideoDevices();
+    } catch (error) {
+      console.error("初始化摄像头失败:", error);
+    }
+  };
 });
 
 onUnmounted(() => {
