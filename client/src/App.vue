@@ -1,40 +1,16 @@
 <template>
   <ion-page>
-    <ion-content :fullscreen="false">
+    <ion-content :fullscreen="true">
       <div class="video-container">
         <button class="toggle-button" @click="toggleVideoDisplayMode">
           🔄
         </button>
         <!-- 视频容器添加 flex 居中 -->
-        <div
-          v-show="
-            videoDisplayMode === 'localStream' ||
-            videoDisplayMode === 'bothStream'
-          "
-          class="video-wrapper"
-          :class="{ 'both-streams-item': videoDisplayMode === 'bothStream' }"
-        >
-          <video
-            ref="localVideo"
-            autoplay
-            playsinline
-            @loadedmetadata="adjustVideoSize"
-          ></video>
+        <div v-show="videoDisplayMode === 'localStream'">
+          <video ref="localVideo" autoplay playsinline></video>
         </div>
-        <div
-          v-show="
-            videoDisplayMode === 'remoteStream' ||
-            videoDisplayMode === 'bothStream'
-          "
-          class="video-wrapper"
-          :class="{ 'both-streams-item': videoDisplayMode === 'bothStream' }"
-        >
-          <video
-            ref="remoteVideo"
-            autoplay
-            playsinline
-            @loadedmetadata="adjustVideoSize"
-          ></video>
+        <div v-show="videoDisplayMode === 'remoteStream'">
+          <video ref="remoteVideo" autoplay playsinline></video>
         </div>
       </div>
     </ion-content>
@@ -116,9 +92,7 @@ const ws = new WebSocket("ws://127.0.0.1:8000/ws/webrtc");
 const showSourceSelection = ref(true);
 const isHovering = ref(false);
 // 控制视频显示模式
-const videoDisplayMode = ref<"localStream" | "remoteStream" | "bothStream">(
-  "localStream"
-);
+const videoDisplayMode = ref<"localStream" | "remoteStream">("localStream");
 const showCameraSelection = ref(false);
 const videoDevices = ref<MediaDeviceInfo[]>([]);
 
@@ -143,8 +117,6 @@ const getVideoDevices = async () => {
 const toggleVideoDisplayMode = () => {
   if (videoDisplayMode.value === "localStream") {
     videoDisplayMode.value = "remoteStream";
-  } else if (videoDisplayMode.value === "remoteStream") {
-    videoDisplayMode.value = "bothStream";
   } else {
     videoDisplayMode.value = "localStream";
   }
@@ -195,22 +167,26 @@ const switchVideoSource = async (
   source?: string
 ) => {
   try {
+    console.log("Switching video source to:", sourceType, source);
     // 停止当前的本地流
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
     if (sourceType === "camera") {
-      // 使用摄像头作为视频源
-      // localStream = await navigator.mediaDevices.getUserMedia({
-      //   video: true,
-      //   audio: false,
-      // });
       const constraints: MediaStreamConstraints = {
         video: source
           ? {
               deviceId: { exact: source },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+              width: {
+                min: 1280,
+                ideal: 1920,
+                max: 2560,
+              },
+              height: {
+                min: 720,
+                ideal: 1080,
+                max: 1440,
+              },
             }
           : true,
         audio: false,
@@ -231,19 +207,9 @@ const switchVideoSource = async (
     if (localVideo.value) {
       localVideo.value.srcObject = localStream;
     }
-
     // 更新 WebRTC 连接中的视频轨道
     const videoTrack = localStream.getVideoTracks()[0];
     if (peerConnection) {
-      // const senders = peerConnection.getSenders();
-      // const videoSender = senders.find(
-      //   (sender) => sender.track?.kind === "video"
-      // );
-      // if (videoSender) {
-      //   videoSender.replaceTrack(videoTrack);
-      // } else {
-      //   peerConnection.addTrack(videoTrack, localStream);
-      // }
       const sender = peerConnection
         .getSenders()
         .find((s) => s.track?.kind === "video");
@@ -258,7 +224,6 @@ const switchVideoSource = async (
       // 如果没有现有的连接，则初始化新的连接
       initWebRTC();
     }
-
     console.log(`Switched video source to: ${sourceType}`);
   } catch (error) {
     console.error("Error switching video source:", error);
@@ -271,7 +236,6 @@ const fetchNetworkStream = async (url: string): Promise<MediaStream> => {
   video.src = url;
   video.crossOrigin = "anonymous";
   await video.play();
-
   const stream = (
     video as HTMLVideoElement & { captureStream?: () => MediaStream }
   ).captureStream?.();
@@ -358,29 +322,7 @@ const initWebRTC = () => {
     }
   };
 };
-// 新增视频尺寸调整方法
-const adjustVideoSize = (event: Event) => {
-  const video = event.target as HTMLVideoElement;
-  const container = video.parentElement;
-  if (!container) return;
-
-  const videoAspectRatio = video.videoWidth / video.videoHeight;
-  const containerAspectRatio = container.clientWidth / container.clientHeight;
-
-  if (videoAspectRatio > containerAspectRatio) {
-    video.style.width = "100%";
-    video.style.height = "auto";
-  } else {
-    video.style.height = "100%";
-    video.style.width = "auto";
-  }
-};
 onMounted(() => {
-  // if (navigator.mediaDevices) {
-  //   // switchVideoSource("camera").then(() => {
-  //   //   initWebRTC();
-  //   // });
-  // }
   async () => {
     try {
       // 先获取基础流以激活设备枚举
@@ -401,35 +343,40 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 修改视频容器样式 */
 .video-container {
-  width: 100vw;
-  height: 100vh;
-  position: relative;
-  background: #000;
-}
-
-.video-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: absolute;
-  top: 0;
-  left: 0;
+  background: #000; /* 黑边颜色 */
 }
 
-.both-streams-item {
-  position: relative;
-  width: 50% !important;
-  height: 100% !important;
-}
-
+/* 修改视频元素样式 */
 video {
+  /* 核心修改点 */
+  object-fit: contain; /* 替换原来的cover */
+
+  /* 动态尺寸控制 */
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
-  transform: scaleX(-1);
+  width: auto;
+  height: auto;
+
+  /* 居中显示 */
+  margin: auto;
+}
+
+/* 确保ion-content无内边距 */
+ion-content {
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
 }
 
 .toggle-button {
