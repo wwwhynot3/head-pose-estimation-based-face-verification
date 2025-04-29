@@ -103,7 +103,6 @@ const getVideoDevices = async () => {
     videoDevices.value = devices.filter(
       (device) => device.kind === "videoinput"
     );
-
     // 自动选择第一个摄像头（如果只有一个）
     if (videoDevices.value.length === 1) {
       selectCamera(videoDevices.value[0].deviceId);
@@ -191,7 +190,6 @@ const switchVideoSource = async (
           : true,
         audio: false,
       };
-
       localStream = await navigator.mediaDevices.getUserMedia(constraints);
     } else if (sourceType === "network" && source) {
       // 使用网络视频源
@@ -206,6 +204,20 @@ const switchVideoSource = async (
     // 将本地流绑定到视频元素
     if (localVideo.value) {
       localVideo.value.srcObject = localStream;
+      // 在加载网络视频源的尝试
+      // // 等待视频元数据加载完成
+      // await new Promise<void>((resolve, reject) => {
+      //   if (!localVideo.value) return reject("Video element not found");
+
+      //   localVideo.value.onloadedmetadata = () => resolve();
+      //   localVideo.value.onerror = (err) => reject(err);
+
+      //   // 设置超时防止卡死
+      //   setTimeout(() => reject("视频元数据加载超时"), 10000);
+      // });
+
+      // // 尝试播放视频
+      // await localVideo.value.play();
     }
     // 更新 WebRTC 连接中的视频轨道
     const videoTrack = localStream.getVideoTracks()[0];
@@ -243,6 +255,59 @@ const fetchNetworkStream = async (url: string): Promise<MediaStream> => {
     throw new Error("captureStream is not supported in this browser.");
   }
   return stream;
+  // 暂时无法解决跨域问题，以下为尝试
+  // console.log("Fetching network video stream from:", url);
+
+  // const video = document.createElement("video");
+  // // 添加到DOM（即使隐藏）
+  // video.style.position = "fixed";
+  // video.style.opacity = "0";
+  // video.style.pointerEvents = "none";
+  // video.style.top = "-1000px";
+  // document.body.appendChild(video);
+
+  // try {
+  //   video.src = url;
+  //   video.crossOrigin = "anonymous";
+  //   video.muted = true; // 解决自动播放限制
+  //   video.preload = "auto";
+
+  //   // 等待元数据加载
+  //   await new Promise((resolve, reject) => {
+  //     video.onloadedmetadata = resolve;
+  //     video.onerror = reject;
+  //     setTimeout(() => reject(new Error("视频加载超时")), 10000); // 10秒超时
+  //   });
+  //   console.log("视频元数据加载成功", url);
+  //   // 尝试播放
+  //   await video.play();
+
+  //   // 等待视频实际开始播放
+  //   await new Promise((resolve, reject) => {
+  //     const checkPlay = () => {
+  //       if (!video.paused) return resolve(true);
+  //       setTimeout(checkPlay, 100);
+  //     };
+  //     checkPlay();
+  //     setTimeout(() => reject(new Error("播放未能启动")), 5000);
+  //   });
+  //   console.log("视频播放成功", url);
+  //   const stream = (video as any).captureStream();
+  //   if (!stream) {
+  //     throw new Error("浏览器不支持captureStream");
+  //   }
+  //   console.log("视频流捕获成功", url);
+  //   return stream;
+  // } catch (err) {
+  //   console.log("ERROR WHEN LOADING URL", url);
+  //   throw err;
+  // } finally {
+  //   // 清理视频元素
+  //   video.pause();
+  //   video.removeAttribute("src");
+  //   video.load();
+  //   document.body.removeChild(video);
+  // }
 };
 
 // Helper function to fetch local file video stream
@@ -261,12 +326,20 @@ const fetchFileStream = async (filePath: string): Promise<MediaStream> => {
 
 // 初始化WebRTC连接
 const initWebRTC = () => {
+  if (!localStream) {
+    console.error("Local stream not initialized");
+    return;
+  }
   peerConnection = new RTCPeerConnection();
 
   // 添加本地视频轨道
   localStream.getTracks().forEach((track) => {
-    console.log("Adding local track:", track);
-    peerConnection.addTrack(track, localStream);
+    if (track.kind === "video") {
+      console.log("Adding local track:", track);
+      peerConnection.addTrack(track, localStream);
+    } else {
+      console.warn("Unsupported track kind:", track.kind);
+    }
   });
 
   // ICE候选处理
@@ -322,17 +395,15 @@ const initWebRTC = () => {
     }
   };
 };
-onMounted(() => {
-  async () => {
-    try {
-      // 先获取基础流以激活设备枚举
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((track) => track.stop());
-      await getVideoDevices();
-    } catch (error) {
-      console.error("初始化摄像头失败:", error);
-    }
-  };
+onMounted(async () => {
+  try {
+    // 先获取基础流以激活设备枚举
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    stream.getTracks().forEach((track) => track.stop());
+    await getVideoDevices();
+  } catch (error) {
+    console.error("初始化摄像头失败:", error);
+  }
 });
 
 onUnmounted(() => {
