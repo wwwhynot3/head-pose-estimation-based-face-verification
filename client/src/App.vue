@@ -46,6 +46,7 @@
         <div class="button-group">
           <button @click="selectSource('camera')">📷 本地相机</button>
           <button @click="selectSource('network')">🌐 网络视频源</button>
+          <!-- 示例视频源 https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4 -->
           <button @click="selectSource('file')">📁 本地文件</button>
         </div>
       </div>
@@ -247,6 +248,18 @@ const fetchNetworkStream = async (url: string): Promise<MediaStream> => {
   const video = document.createElement("video");
   video.src = url;
   video.crossOrigin = "anonymous";
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = reject;
+      setTimeout(() => reject(new Error("视频加载超时")), 10000); // 10秒超时
+    });
+  } catch (error) {
+    console.error("视频加载失败:", error);
+    // 弹窗提示加载失败
+    alert("视频加载失败，请检查视频源地址");
+  }
+
   await video.play();
   const stream = (
     video as HTMLVideoElement & { captureStream?: () => MediaStream }
