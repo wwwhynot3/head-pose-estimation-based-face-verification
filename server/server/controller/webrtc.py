@@ -6,32 +6,30 @@ import cv2
 import numpy as np
 from av import VideoFrame
 from channels.generic.websocket import AsyncWebsocketConsumer
-from aiortc import RTCConfiguration, RTCIceGatherer, RTCIceServer, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
-from aiortc.rtcrtpsender import RTCRtpSender
-from aiortc.rtcicetransport import RTCIceCandidate
+from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 
 class ProcessedVideoTrack(VideoStreamTrack):
     def __init__(self):
         super().__init__()
         self.frame_queue = asyncio.Queue(maxsize=1)
         self.running = True
+        self.count = 0
+        
 
     async def recv(self):
-        print("videotrackrev")
+        # print("videotrackrev")
         pts, time_base = await self.next_timestamp()
-        print(f"Received frame with pts: {pts}, time_base: {time_base}")
         frame = await self.frame_queue.get()
-        print('1')
+        pic = frame.to_ndarray(format="bgr24")
+        cv2.putText(pic, f'{self.count}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        frame = VideoFrame.from_ndarray(pic, format="bgr24")
         frame.pts = pts
-        print('2')
         frame.time_base = time_base
-        print('3')
+        self.count += 1
         # cv2.imshow("Processed Frame", frame.to_ndarray(format="bgr24"))
-        print('4')
         return frame
 
     async def put_frame(self, frame):
-        print("put_frame")
         if self.frame_queue.full():
             await self.frame_queue.get()  # 丢弃旧帧
         await self.frame_queue.put(frame)
@@ -57,6 +55,7 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
         super().__init__(*args, **kwargs)
         self.pc = None
         self.processed_track = None
+        self.account = None
 
     async def connect(self):
         await self.accept()
@@ -109,6 +108,9 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
             await self.handle_candidate(data['candidate'])
             # print(f"Received ICE candidate: {data['candidate']}")
             pass
+        elif data['type'] == 'account':
+            self.account = data['data']
+            print(f"Account set: {self.account}")
         elif data['type'] == 'data':
             await self.handle_data(data['data'])
         else:
@@ -123,7 +125,7 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
         await self.pc.addIceCandidate(candidate)
 
     async def handle_offer(self, offer_data):
-        # 处理传入的视频流
+        self.pc.addTrack(self.processed_track)
         @self.pc.on("track")
         async def on_track(track):
             print(f"Track received: {track.kind}")
@@ -131,43 +133,28 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
                 while True:
                     try:
                         frame = await track.recv()
-                        print("Received video frame...")
                         # 示例：处理接收到的视频帧
-                        img = frame.to_ndarray(format="bgr24")
-                        print(1)
-                        processed = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                        # cv2.imshow("Processed Frame", processed)
-                        print(2)
-                        processed_frame = VideoFrame.from_ndarray(
-                            processed,
-                            format="gray"
-                        )
-                        print(3)
-                        await self.processed_track.put_frame(processed_frame)
+                        # img = frame.to_ndarray(format="bgr24")
+                        # processed = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        # # cv2.imshow("Processed Frame", processed)
+                        # processed_frame = VideoFrame.from_ndarray(
+                        #     processed,
+                        #     format="gray"
+                        # )
+                        await self.processed_track.put_frame(frame=frame)
                     except asyncio.CancelledError:
                         print("Video track processing cancelled.")
                         break
                     except Exception as e:
                         print(f"Error processing video frame: {e}")
                         break
-        # print(f"Handling SDP Offer...{offer_data['sdp']}")
-        # 添加处理轨道
-        self.pc.addTrack(self.processed_track)
-        # candidate = aiortc.sdp.candidate_from_sdp(offer_data["sdp"])
-        # 设置ICE候选
-        # self.pc.addIceCandidate(candidate)
-        # 设置远端描述
         offer = RTCSessionDescription(
             sdp=offer_data["sdp"], 
             type=offer_data["type"]
         )
         await self.pc.setRemoteDescription(offer)
-
-        # 创建并发送 Answer
         answer = await self.pc.createAnswer()
         await self.pc.setLocalDescription(answer)
-        
-        # print(f"Sending SDP Answer: {answer.sdp}")
         await self.send(json.dumps({
             "type": answer.type,
             "sdp": answer.sdp
