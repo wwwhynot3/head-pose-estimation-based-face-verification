@@ -10,29 +10,21 @@ from algorithm import face_recognition_batch
 
 
 def process_frame(frame, min_probs=0.7, face_threshold=0.4):
-    # 人脸检测
-
-    faces, probs = detect_face(frame, min_prob=min_probs)
-
-    print(f"Detected {len(faces)} faces")
-    for face, prob in zip(faces, probs):
-        print(f"Face probability: {prob:.2f}")
-
-    # 姿态估计
+    """
+    输入的frame请为RGB格式,
+    输出的frame也为RGB格式
+    """
+    boxes, faces, probs = detect_face(frame, min_prob=min_probs)
+    if len(boxes) == 0:
+        return frame, [], []
     poses = face_pose_estimate_batch(hopenetlite, faces)
-
-    # 人脸对齐
     aligned_faces = align_faces_batch(faces, poses)
-
-    for i, (face, prob) in enumerate(zip(aligned_faces, probs)):
-        cv2.imwrite(f"resources/pictures/output/aligned/AlignedFace{i}.jpg", face)
-    # 人脸识别
-
     results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=face_threshold, model=mobilefacenet)
-
-    for i, (result, score) in enumerate(zip(results, scores)):
-        print(f"Image {i}: {result} ({score:.2f})")
-    return results, scores
+    for (face, result) in zip(boxes, results):
+        x1, y1, x2, y2 = map(int, face)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(frame, f"{result}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    return frame, results, scores
 
 # def test():
 #     # 测试代码

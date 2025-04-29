@@ -1,5 +1,7 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import json
+import time
 import aiortc
 import aiortc.sdp
 import cv2
@@ -8,31 +10,49 @@ from av import VideoFrame
 from channels.generic.websocket import AsyncWebsocketConsumer
 from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 
+from server.service.processor import process_frame
+
 class ProcessedVideoTrack(VideoStreamTrack):
     def __init__(self):
         super().__init__()
         self.frame_queue = asyncio.Queue(maxsize=1)
+        self.processed_queue = asyncio.Queue(maxsize=1)
         self.running = True
-        self.count = 0
-        
+        self.executor = ThreadPoolExecutor()  # 创建线程池
+        self.task = asyncio.create_task(self._process_frames())
+
+    async def _process_frames(self):
+        while self.running:
+            frame = await self.frame_queue.get()
+            pic = frame.to_ndarray(format="rgb24")
+            # pic, result, score = process_frame(pic)  # 耗时操作
+            # pic, result, score = await asyncio.to_thread(process_frame, pic)  # 使用线程池处理
+            pic, result, score = await asyncio.wait_for(
+                        asyncio.get_running_loop().run_in_executor(self.executor, process_frame, pic),
+                        timeout=2  # 设置超时时间
+                    )
+
+            # 视频打上时间戳
+            cv2.putText(pic, f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            processed_frame = VideoFrame.from_ndarray(pic, format="rgb24")
+            if self.processed_queue.full():
+                _ = self.processed_queue.get_nowait()
+            await self.processed_queue.put((processed_frame, frame.pts, frame.time_base))
 
     async def recv(self):
-        # print("videotrackrev")
-        pts, time_base = await self.next_timestamp()
-        frame = await self.frame_queue.get()
-        pic = frame.to_ndarray(format="bgr24")
-        cv2.putText(pic, f'{self.count}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        frame = VideoFrame.from_ndarray(pic, format="bgr24")
-        frame.pts = pts
-        frame.time_base = time_base
-        self.count += 1
-        # cv2.imshow("Processed Frame", frame.to_ndarray(format="bgr24"))
-        return frame
+        # print("Receiving processed frame...")
+        # print(f'{time.strftime("%H:%M:%S")}: Receiving processed frame...')
+        processed_frame, pts, time_base = await self.processed_queue.get()
+        # cv2.imshow("Processed Frame", processed_frame.to_ndarray(format="bgr24"))
+        processed_frame.pts = pts
+        processed_frame.time_base = time_base
+        return processed_frame
 
     async def put_frame(self, frame):
         if self.frame_queue.full():
-            await self.frame_queue.get()  # 丢弃旧帧
+            _ = self.frame_queue.get_nowait()
         await self.frame_queue.put(frame)
+        # print("Frame put into queue.")
 
 class CameraVideoTrack(VideoStreamTrack):
     def __init__(self):
@@ -97,6 +117,9 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
             await self.pc.close()
         if self.processed_track:
             self.processed_track.running = False
+            self.processed_track.task.cancel()
+            self.processed_track.stop()
+        
         print("WebRTC disconnected.")
 
     async def receive(self, text_data=None, bytes_data=None):

@@ -4,20 +4,22 @@ from algorithm.model.prcnn import PRCNN
 from algorithm.base import prcnn
 import cv2
 
-def _crop_faces(image, boxes, probs, min_prob) -> tuple[list, list]:
+def _crop_faces(image, boxes, probs, min_prob) -> tuple[list, list, list]:
     if boxes.size == 0 or probs.size == 0:
-        return [], []
+        return [], [], []
     faces = []
     probss = []
+    valid_boxes = []
     for box, prob in zip(boxes, probs):
         if prob < min_prob:
             continue
         x1, y1, x2, y2 = map(int, box)
+        valid_boxes.append(box)
         faces.append(image[y1:y2, x1:x2])
         probss.append(prob)
-    return faces, probss
+    return valid_boxes, faces, probss
 
-def detect_face(frame, min_prob=0) -> tuple[list, list]:
+def detect_face(frame, min_prob=0) -> tuple[list, list, list]:
     boxes, probs = prcnn.detect(frame)
     boxes = np.array(boxes) if boxes is not None else np.array([])
     probs = np.array(probs) if probs is not None else np.array([])
