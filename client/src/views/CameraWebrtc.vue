@@ -41,23 +41,36 @@
         <button class="toggle-button" @click="toggleVideoDisplayMode">
           ChangeView
         </button>
+        <!-- 视频容器添加 flex 居中 -->
         <div
           v-show="
             videoDisplayMode === 'localStream' ||
             videoDisplayMode === 'bothStream'
           "
-          :class="{ 'both-streams': videoDisplayMode === 'bothStream' }"
+          class="video-wrapper"
+          :class="{ 'both-streams-item': videoDisplayMode === 'bothStream' }"
         >
-          <video ref="localVideo" autoplay playsinline></video>
+          <video
+            ref="localVideo"
+            autoplay
+            playsinline
+            @loadedmetadata="adjustVideoSize"
+          ></video>
         </div>
         <div
           v-show="
             videoDisplayMode === 'remoteStream' ||
             videoDisplayMode === 'bothStream'
           "
-          :class="{ 'both-streams': videoDisplayMode === 'bothStream' }"
+          class="video-wrapper"
+          :class="{ 'both-streams-item': videoDisplayMode === 'bothStream' }"
         >
-          <video ref="remoteVideo" autoplay playsinline></video>
+          <video
+            ref="remoteVideo"
+            autoplay
+            playsinline
+            @loadedmetadata="adjustVideoSize"
+          ></video>
         </div>
       </div>
     </ion-content>
@@ -289,7 +302,23 @@ const initWebRTC = () => {
     }
   };
 };
+// 新增视频尺寸调整方法
+const adjustVideoSize = (event: Event) => {
+  const video = event.target as HTMLVideoElement;
+  const container = video.parentElement;
+  if (!container) return;
 
+  const videoAspectRatio = video.videoWidth / video.videoHeight;
+  const containerAspectRatio = container.clientWidth / container.clientHeight;
+
+  if (videoAspectRatio > containerAspectRatio) {
+    video.style.width = "100%";
+    video.style.height = "auto";
+  } else {
+    video.style.height = "100%";
+    video.style.width = "auto";
+  }
+};
 onMounted(() => {
   if (navigator.mediaDevices) {
     // switchVideoSource("camera").then(() => {
@@ -358,46 +387,50 @@ onUnmounted(() => {
 }
 .video-container {
   width: 100vw;
-  height: 100vh; /* 确保容器有明确尺寸 */
-  overflow: hidden; /* 隐藏溢出内容 */
+  height: 100vh;
   position: relative;
+  background: #000; /* 添加黑色背景填充空隙 */
 }
 
-.both-streams {
+/* 单个视频容器样式 */
+.video-wrapper {
+  width: 100%;
+  height: 100%;
   display: flex;
-  height: 100%;
-  width: 100%;
-  gap: 4px; /* 视频间距 */
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
-.both-streams video {
-  flex: 1; /* 平分宽度 */
-  min-width: 0; /* 修复 flex 溢出问题 */
-  height: 100%;
-  transform: scaleX(-1); /* 保持镜像翻转 */
-  object-fit: cover; /* 保持视频比例 */
-}
-
-/* .video-container {
-  width: 100%;
-  height: 100%;
+/* 双流模式下的视频项 */
+.both-streams-item {
   position: relative;
-} */
+  width: 50% !important;
+  height: 100% !important;
+}
 
 video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1); /* 镜像翻转 */
-}
-/* .both-streams {
-  display: flex;
-  justify-content: space-between;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* 修改为 contain 保持完整比例 */
+  transform: scaleX(-1);
 }
 
-.both-streams video {
-  width: 49%; 
-} */
+/* 双流模式布局调整 */
+.both-streams {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 4px;
+}
+
+.both-streams .video-wrapper {
+  position: relative;
+  flex: 1;
+  height: 100%;
+}
 
 .toggle-button {
   position: absolute;
