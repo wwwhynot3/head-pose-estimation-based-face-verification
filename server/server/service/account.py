@@ -2,16 +2,15 @@ from pathlib import Path
 from algorithm.base import *
 from algorithm.face_pose_estimation import face_pose_estimate_single
 
-def add_account(account) -> dict:
+def add_account(account) -> str:
     # 创建一个新的账户文件夹
     account_path = Path(facebank_path) / account
     if not account_path.exists():
         account_path.mkdir(parents=True, exist_ok=True)
         print(f'Account {account} created.')
-        return str(account_path)
     else:
         print(f'Account {account} already exists.')
-        raise ValueError("Account already exists.")
+    return str(account_path)
 
 def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:
     yaw, pitch, row =face_pose_estimate_single(model, face)

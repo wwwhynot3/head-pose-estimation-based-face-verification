@@ -95,39 +95,160 @@
         </div>
       </div>
     </div>
+    <!-- Login Modal -->
+    <div
+      v-if="showLoginModal"
+      class="modal-overlay"
+      @click.self="showLoginModal = false"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h3>登录账号</h3>
+          <button class="close-button" @click="showLoginModal = false">
+            &times;
+          </button>
+        </div>
+        <div class="form-group">
+          <label for="serverAddress">服务器地址</label>
+          <input
+            id="serverAddress"
+            v-model="serverAddress"
+            type="text"
+            placeholder="请输入服务器地址"
+            @click.stop
+          />
+        </div>
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            placeholder="请输入用户名"
+            @click.stop
+          />
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            placeholder="请输入密码"
+            @click.stop
+          />
+        </div>
+        <div class="button-group">
+          <button @click="handleLogin">登录</button>
+        </div>
+      </div>
+    </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { IonContent, IonPage } from "@ionic/vue";
 
 const localVideo = ref<HTMLVideoElement>();
 const remoteVideo = ref<HTMLVideoElement>();
 let localStream: MediaStream;
 let peerConnection: RTCPeerConnection;
-const ws = new WebSocket("ws://127.0.0.1:8000/ws/webrtc");
+// const ws = new WebSocket("ws://127.0.0.1:8000/ws/webrtc");
+let ws: WebSocket;
 // 控制弹窗显示
-const showSourceSelection = ref(true);
+const showSourceSelection = ref<boolean>(true);
 const isHovering = ref(false);
 // 控制视频显示模式
 const videoDisplayMode = ref<"localStream" | "remoteStream">("localStream");
 const showCameraSelection = ref(false);
 const videoDevices = ref<MediaDeviceInfo[]>([]);
 const currentUser = ref<string | null>(null);
+// Login modal fields
+const showLoginModal = ref(false);
+const logined = ref(false);
+const serverAddress = ref("127.0.0.1:8000");
+const username = ref("");
+const password = ref("");
+const getWs = () => {
+  return new WebSocket("ws://" + serverAddress.value + "/ws/webrtc");
+};
+const getAccountUrl = () => {
+  return "http://" + serverAddress.value + "/account/";
+};
+const fetchRequest = async (url: string, options = {}, params = {}) => {
+  try {
+    // 构建查询字符串（仅适用于 GET 或需要查询参数的请求）
+    const queryString = new URLSearchParams(params).toString();
+    const fullUrl = queryString ? `${url}?${queryString}` : url;
 
-const login = () => {
-  const username = prompt("请输入用户名：");
-  if (username) {
-    currentUser.value = username;
-    alert(`欢迎登录，${username}！`);
+    console.log("Request URL:", fullUrl);
+    console.log("Request Options:", options);
+
+    // 发起请求
+    const response = await fetch(fullUrl, options);
+
+    // 检查响应状态
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error Response:", errorData);
+      throw new Error(errorData.message || `HTTP Error: ${response.status}`);
+    }
+
+    // 返回解析后的 JSON 数据
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    throw new Error(`网络错误: ${error}`);
   }
 };
-
+const handleLogin = async () => {
+  /*
+  if (!serverAddress.value || !username.value || !password.value) {
+    alert("请填写所有字段！");
+    return;
+  }
+    */
+  if (!serverAddress.value) {
+    alert("请填写服务器地址！");
+    return;
+  }
+  const account = username.value ? username.value : "default";
+  // Simulate login process
+  currentUser.value = account;
+  const res = await fetchRequest(getAccountUrl() + "register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      account: account,
+    }),
+  });
+  if (!res) {
+    alert("登录失败，请检查服务器地址或网络连接");
+    return;
+  } else {
+    alert(`登录成功！欢迎 ${currentUser.value}`);
+    showLoginModal.value = false;
+    logined.value = true;
+  }
+};
+const login = () => {
+  if (currentUser.value) {
+    alert("您已登录！");
+  } else {
+    showLoginModal.value = true;
+  }
+};
 const logout = () => {
   if (confirm("确定要登出吗？")) {
     currentUser.value = null;
-    alert("您已成功登出！");
+    // Clear fields
+    serverAddress.value = "127.0.0.1:8000";
+    username.value = "";
+    password.value = "";
+    location.reload();
   }
 };
 // 获取视频设备列表
@@ -238,20 +359,6 @@ const switchVideoSource = async (
     // 将本地流绑定到视频元素
     if (localVideo.value) {
       localVideo.value.srcObject = localStream;
-      // 在加载网络视频源的尝试
-      // // 等待视频元数据加载完成
-      // await new Promise<void>((resolve, reject) => {
-      //   if (!localVideo.value) return reject("Video element not found");
-
-      //   localVideo.value.onloadedmetadata = () => resolve();
-      //   localVideo.value.onerror = (err) => reject(err);
-
-      //   // 设置超时防止卡死
-      //   setTimeout(() => reject("视频元数据加载超时"), 10000);
-      // });
-
-      // // 尝试播放视频
-      // await localVideo.value.play();
     }
     // 更新 WebRTC 连接中的视频轨道
     const videoTrack = localStream.getVideoTracks()[0];
@@ -297,59 +404,6 @@ const fetchNetworkStream = async (url: string): Promise<MediaStream> => {
     throw new Error("captureStream is not supported in this browser.");
   }
   return stream;
-  // 暂时无法解决跨域问题，以下为尝试
-  // console.log("Fetching network video stream from:", url);
-
-  // const video = document.createElement("video");
-  // // 添加到DOM（即使隐藏）
-  // video.style.position = "fixed";
-  // video.style.opacity = "0";
-  // video.style.pointerEvents = "none";
-  // video.style.top = "-1000px";
-  // document.body.appendChild(video);
-
-  // try {
-  //   video.src = url;
-  //   video.crossOrigin = "anonymous";
-  //   video.muted = true; // 解决自动播放限制
-  //   video.preload = "auto";
-
-  //   // 等待元数据加载
-  //   await new Promise((resolve, reject) => {
-  //     video.onloadedmetadata = resolve;
-  //     video.onerror = reject;
-  //     setTimeout(() => reject(new Error("视频加载超时")), 10000); // 10秒超时
-  //   });
-  //   console.log("视频元数据加载成功", url);
-  //   // 尝试播放
-  //   await video.play();
-
-  //   // 等待视频实际开始播放
-  //   await new Promise((resolve, reject) => {
-  //     const checkPlay = () => {
-  //       if (!video.paused) return resolve(true);
-  //       setTimeout(checkPlay, 100);
-  //     };
-  //     checkPlay();
-  //     setTimeout(() => reject(new Error("播放未能启动")), 5000);
-  //   });
-  //   console.log("视频播放成功", url);
-  //   const stream = (video as any).captureStream();
-  //   if (!stream) {
-  //     throw new Error("浏览器不支持captureStream");
-  //   }
-  //   console.log("视频流捕获成功", url);
-  //   return stream;
-  // } catch (err) {
-  //   console.log("ERROR WHEN LOADING URL", url);
-  //   throw err;
-  // } finally {
-  //   // 清理视频元素
-  //   video.pause();
-  //   video.removeAttribute("src");
-  //   video.load();
-  //   document.body.removeChild(video);
-  // }
 };
 
 // Helper function to fetch local file video stream
@@ -439,6 +493,27 @@ const initWebRTC = () => {
 };
 onMounted(async () => {
   try {
+    showLoginModal.value = true;
+    await new Promise<void>((resolve) => {
+      const unwatch = watch(showLoginModal, (value) => {
+        if (!value) {
+          resolve();
+          unwatch(); // 停止监听
+        }
+      });
+    });
+
+    // 用户登录后初始化 WebSocket
+    ws = getWs();
+    ws.onopen = () => {
+      console.log("WebSocket 已连接");
+    };
+    ws.onerror = (error) => {
+      console.error("WebSocket 连接错误:", error);
+    };
+    ws.onclose = () => {
+      console.log("WebSocket 已关闭");
+    };
     console.log("OnMounted...");
   } catch (error) {
     console.error("初始化摄像头失败:", error);
@@ -488,7 +563,24 @@ ion-content {
   --padding-top: 0;
   --padding-bottom: 0;
 }
+/* Add styles for the login modal */
+.form-group {
+  margin-bottom: 1rem;
+}
 
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
 .user-info {
   margin-right: 0px;
   font-size: 1rem;

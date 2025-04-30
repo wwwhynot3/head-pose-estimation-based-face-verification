@@ -1,18 +1,23 @@
 import cv2
-from ninja import NinjaAPI, File, Query
+from ninja import NinjaAPI, File, Query, Schema
 import numpy as np
 from server.service.account import add_account, add_account_facebank
 from typing import List
 from ninja.files import UploadedFile
 account_api = NinjaAPI()
-
+class RegisterModel(Schema):
+    """
+    Register model
+    """
+    account: str
+    
 @account_api.post('register')
-def register_account(request, account):
+def register_account(request, account: RegisterModel):
     """
     Register a new user.
     """
     try:
-        account_path = add_account(account)
+        account_path = add_account(account.account)
     except Exception as e:
         return {"code": 400, "data": str(e)}
     return {"code":200, "data": account_path}
