@@ -32,16 +32,34 @@
       class="modal-overlay"
       @click.self="showSourceSelection = false"
     >
-      <!-- 修改后的modal部分 -->
       <div class="modal">
         <div class="modal-header">
-          <h3>选择视频源</h3>
+          <h3>通用设置</h3>
           <button
             class="close-button"
             @click.stop="showSourceSelection = false"
           >
             &times;
           </button>
+        </div>
+        <hr class="divider" />
+        <div class="modal-header">
+          <h4>账号设置</h4>
+        </div>
+        <div class="button-group horizontal">
+          <button
+            class="account-button"
+            @click="currentUser ? logout() : login()"
+          >
+            {{ currentUser ? "🔓 登出" : "🔒 登入" }}
+          </button>
+          <span class="user-info">
+            {{ currentUser || "未登录" }}
+          </span>
+        </div>
+        <hr class="divider" />
+        <div class="modal-header">
+          <h4>视频源设置</h4>
         </div>
         <div class="button-group">
           <button @click="selectSource('camera')">📷 本地相机</button>
@@ -96,7 +114,22 @@ const isHovering = ref(false);
 const videoDisplayMode = ref<"localStream" | "remoteStream">("localStream");
 const showCameraSelection = ref(false);
 const videoDevices = ref<MediaDeviceInfo[]>([]);
+const currentUser = ref<string | null>(null);
 
+const login = () => {
+  const username = prompt("请输入用户名：");
+  if (username) {
+    currentUser.value = username;
+    alert(`欢迎登录，${username}！`);
+  }
+};
+
+const logout = () => {
+  if (confirm("确定要登出吗？")) {
+    currentUser.value = null;
+    alert("您已成功登出！");
+  }
+};
 // 获取视频设备列表
 const getVideoDevices = async () => {
   try {
@@ -456,6 +489,18 @@ ion-content {
   --padding-bottom: 0;
 }
 
+.user-info {
+  margin-right: 0px;
+  font-size: 1rem;
+  text-decoration: underline;
+  color: var(--ion-text-color, #333);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 1rem 0;
+}
 .toggle-button {
   position: absolute;
   top: 10px;
@@ -563,23 +608,36 @@ ion-content {
   max-width: 400px;
   position: relative;
 }
-
-.modal-header {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding: 0 30px; /* 为关闭按钮留空间 */
-}
-
 .modal h3 {
   margin: 0;
   text-align: center;
   font-size: 1.2rem;
   color: var(--ion-text-color);
 }
+.modal-header {
+  position: relative;
+  display: flex;
+  justify-content: center; /* 默认居中 */
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 30px; /* 为关闭按钮留空间 */
+}
 
+.modal-header h3 {
+  margin: 0;
+  text-align: center; /* 居中对齐 */
+  font-size: 1.5rem;
+  color: var(--ion-text-color);
+}
+
+.modal-header h4 {
+  margin: 0;
+  text-align: left; /* 左对齐 */
+  font-size: 1.2rem;
+  color: var(--ion-text-color);
+  width: 100%; /* 确保占满父容器宽度 */
+  margin-left: -50px;
+}
 .button-group button {
   display: block;
   width: 100%;
@@ -593,11 +651,31 @@ ion-content {
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
-
 .button-group button:hover {
   background-color: var(--ion-color-primary-shade, #0056b3);
 }
+.button-group.horizontal {
+  display: flex;
+  justify-content: space-between; /* Space between elements */
+  align-items: center;
+  width: 100%; /* Ensure full width for alignment */
+}
 
+.account-button {
+  flex: 0 0 61.8%; /* 确保按钮宽度为父容器的 61.8% */
+}
+
+.account-button:hover {
+  background-color: var(--ion-color-primary-shade, #0056b3);
+}
+
+.user-info {
+  font-size: 1rem;
+  text-decoration: underline;
+  color: var(--ion-text-color, #333);
+  margin-left: auto; /* 将用户信息推到右侧 */
+  text-align: right; /* 确保文字右对齐 */
+}
 .close-button {
   background: none !important;
   border: none;
