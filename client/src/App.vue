@@ -176,6 +176,9 @@ let localStream: MediaStream;
 let peerConnection: RTCPeerConnection;
 // const ws = new WebSocket("ws://127.0.0.1:8000/ws/webrtc");
 let ws: WebSocket;
+const no_person_warning = ref<boolean>(true);
+let last_waring_timestamp = 0;
+let no_person_warning_timeout = ref<number>(1);
 // 控制弹窗显示
 const showSourceSelection = ref<boolean>(true);
 const isHovering = ref(false);
@@ -606,7 +609,7 @@ const initWebRTC = () => {
   // 处理信令服务器消息
   ws.onmessage = async (event) => {
     const message = JSON.parse(event.data);
-    console.log("Received message:", message);
+    // console.log("Received message:", message);
     if (message.type === "answer") {
       // 设置远端描述
       await peerConnection.setRemoteDescription(
@@ -620,6 +623,25 @@ const initWebRTC = () => {
       // console.log('Received ICE candidate:', message.candidate);
     } else if (message.type === "recognition") {
       console.log("Received data channel:", message);
+      const timestamp: number = message.timestamp;
+      const result: Array<any> = message.result;
+      console.log(no_person_warning.value);
+      console.log("Received recognition result:", result.length === 0);
+      console.log(
+        "Received recognition result:",
+        timestamp - last_waring_timestamp > no_person_warning_timeout.value
+      );
+      // const score: Number = message.score;
+      if (no_person_warning.value) {
+        if (
+          result.length === 0 &&
+          timestamp - last_waring_timestamp > no_person_warning_timeout.value
+        ) {
+          last_waring_timestamp = timestamp;
+          // 提示错误
+          alert("人脸识别失败，请检查摄像头或网络连接");
+        }
+      }
     } else {
       console.warn("Unknown message type:", message.type);
     }
@@ -654,14 +676,9 @@ onMounted(async () => {
 
     // 用户登录后初始化 WebSocket
     ws = getWs();
-    // ws.send(
-    //   JSON.stringify({
-    //     type: "login",
-    //     account: account,
-    //   })
-    // );
     ws.onopen = () => {
       console.log("WebSocket 已连接");
+      console.log(`Going to send login account: ${account}`);
       ws.send(
         JSON.stringify({
           type: "login",

@@ -33,11 +33,11 @@ class ProcessedVideoTrack(VideoStreamTrack):
                         asyncio.get_running_loop().run_in_executor(self.executor, process_frame, pic, self.account),
                         timeout=2  # 设置超时时间
                     )
-            self.ws.send(json.dumps({
+            await self.ws.send(json.dumps({
                 "type": "recognition",
                 "result": result,
                 "score": score,
-                "timestamp": time.time(),
+                "timestamp": int(time.time()),
             }))
             # 视频打上时间戳
             cv2.putText(pic, f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
