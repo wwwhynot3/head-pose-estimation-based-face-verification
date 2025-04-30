@@ -228,10 +228,6 @@ const switchVideoSource = async (
         .find((s) => s.track?.kind === "video");
       if (sender) {
         await sender.replaceTrack(videoTrack);
-        // 触发重新协商
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        ws.send(JSON.stringify(offer));
       }
     } else {
       // 如果没有现有的连接，则初始化新的连接
