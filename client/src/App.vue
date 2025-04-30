@@ -406,10 +406,7 @@ const initWebRTC = () => {
 };
 onMounted(async () => {
   try {
-    // 先获取基础流以激活设备枚举
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    stream.getTracks().forEach((track) => track.stop());
-    await getVideoDevices();
+    console.log("OnMounted...");
   } catch (error) {
     console.error("初始化摄像头失败:", error);
   }
