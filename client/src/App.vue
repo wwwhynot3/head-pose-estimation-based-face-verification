@@ -54,8 +54,18 @@
             {{ currentUser ? "🔓 登出" : "🔒 登入" }}
           </button>
           <span class="user-info">
-            {{ currentUser || "未登录" }}
+            {{ currentUser ? "用户名: " + currentUser : "未登录" }}
           </span>
+        </div>
+        <div class="button-group">
+          <button @click="triggerFaceRegistration">🎟️注册人脸</button>
+          <input
+            ref="faceFileInput"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="handleFaceFileUpload"
+          />
         </div>
         <hr class="divider" />
         <div class="modal-header">
@@ -170,6 +180,9 @@ const logined = ref(false);
 const serverAddress = ref("127.0.0.1:8000");
 const username = ref("");
 const password = ref("");
+// 人脸注册
+const faceFileInput = ref<HTMLInputElement | null>(null);
+let account: string;
 const getWs = () => {
   return new WebSocket("ws://" + serverAddress.value + "/ws/webrtc");
 };
@@ -213,7 +226,7 @@ const handleLogin = async () => {
     alert("请填写服务器地址！");
     return;
   }
-  const account = username.value ? username.value : "default";
+  account = username.value ? username.value : "default";
   // Simulate login process
   currentUser.value = account;
   const res = await fetchRequest(getAccountUrl() + "register", {
@@ -249,6 +262,39 @@ const logout = () => {
     username.value = "";
     password.value = "";
     location.reload();
+  }
+};
+const triggerFaceRegistration = () => {
+  console.log("triggerFaceRegistration");
+  faceFileInput.value?.click();
+};
+
+const handleFaceFileUpload = async (event: Event) => {
+  console.log("handleFaceFileUpload");
+  const file = (event.target as HTMLInputElement).files?.[0];
+  console.log("file", file);
+  if (!file) {
+    alert("请选择图片文件！");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("account", account);
+  formData.append("file", file);
+
+  try {
+    const res = await fetchRequest(getAccountUrl() + "register_face", {
+      method: "POST",
+      body: formData,
+    });
+    if (res?.code === 200) {
+      alert("人脸注册成功！");
+    } else {
+      alert(`人脸注册失败: ${res?.data || "未知错误"}`);
+    }
+  } catch (error) {
+    console.error("Face registration error:", error);
+    alert("人脸注册失败，请检查网络连接或服务器配置");
   }
 };
 // 获取视频设备列表
@@ -754,7 +800,7 @@ ion-content {
 }
 
 .account-button {
-  flex: 0 0 61.8%; /* 确保按钮宽度为父容器的 61.8% */
+  flex: 0 0 38%; /* 确保按钮宽度为父容器的 61.8% */
 }
 
 .account-button:hover {

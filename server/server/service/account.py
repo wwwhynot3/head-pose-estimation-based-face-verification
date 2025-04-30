@@ -10,14 +10,15 @@ def add_account(account) -> str:
         print(f'Account {account} created.')
     else:
         print(f'Account {account} already exists.')
+    prepare_facebank(account_path, model=hopenetlite, force_rebuild=True)
     return str(account_path)
 
 def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:
     yaw, pitch, row =face_pose_estimate_single(model, face)
     # 三者的绝对值都小于10度
     if not (abs(yaw) < 10 and abs(pitch) < 10 and abs(row) < 10):
-        raise ValueError(f"Face pose is not frontal enough. yaw={yaw}, pitch={pitch}, roll={row}")
-    facebank_dir = os.path.join(facebank_path, account, file_name)
+        raise ValueError(f"人脸角度过大，请上传正脸照片 yaw={yaw}, pitch={pitch}, roll={row}")
+    facebank_dir = os.path.join(facebank_path, account)
     cv2.imwrite(os.path.join(facebank_dir, file_name), face)
 
     facebank_map[account] = prepare_facebank(facebank_dir, model, force_rebuild=True)

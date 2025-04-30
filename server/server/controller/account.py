@@ -1,5 +1,5 @@
 import cv2
-from ninja import NinjaAPI, File, Query, Schema
+from ninja import Form, NinjaAPI, File, Query, Schema
 import numpy as np
 from server.service.account import add_account, add_account_facebank
 from typing import List
@@ -16,6 +16,8 @@ def register_account(request, account: RegisterModel):
     """
     Register a new user.
     """
+    # 打印日志
+    print(f"Registering account {account.account}")
     try:
         account_path = add_account(account.account)
     except Exception as e:
@@ -23,10 +25,12 @@ def register_account(request, account: RegisterModel):
     return {"code":200, "data": account_path}
 
 @account_api.post('register_face')
-def register_face(request, account: str = Query(...), file:UploadedFile = File(...)):
+def register_face(request, account: str = Form(...), file:UploadedFile = File(...)):
     """
     Register a new face.
     """
+    # 打印日志
+    print(f"Registering face for account {account}， file name: {file.name}")
     try:
         # 读取图片
         img = file.read()
@@ -41,6 +45,7 @@ def register_face(request, account: str = Query(...), file:UploadedFile = File(.
         account_path = add_account_facebank(account, file_name, face)
     except Exception as e:
         # return Response.error(f"Error: {str(e)}")
+        # 删除注册失败的人脸
         print(f"Error: {str(e)}")
         # raise e
         return {"code": 400, "data": str(e)}
