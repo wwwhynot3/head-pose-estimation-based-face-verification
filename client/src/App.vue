@@ -60,11 +60,11 @@
         <div class="button-group">
           <button @click="triggerFaceRegistration">🎟️注册人脸</button>
           <input
-            ref="faceFileInput"
+            ref="facebankFileInput"
             type="file"
             accept="image/*"
             style="display: none"
-            @change="handleFaceFileUpload"
+            @change="handleFacebankFileUpload"
           />
         </div>
         <hr class="divider" />
@@ -75,7 +75,15 @@
           <button @click="selectSource('camera')">📷 本地相机</button>
           <button @click="selectSource('network')">🌐 网络视频源</button>
           <!-- 示例视频源 https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4 -->
-          <button @click="selectSource('file')">📁 本地文件</button>
+          <button @click="selectSource('file')">📁 本地视频文件</button>
+          <button @click="triggerFaceRecognition()">📁 本地图像文件</button>
+          <input
+            ref="facepictureFileInput"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="handleFacepictureFileUpload"
+          />
         </div>
       </div>
     </div>
@@ -181,13 +189,17 @@ const serverAddress = ref("127.0.0.1:8000");
 const username = ref("");
 const password = ref("");
 // 人脸注册
-const faceFileInput = ref<HTMLInputElement | null>(null);
+const facebankFileInput = ref<HTMLInputElement | null>(null);
+const facepictureFileInput = ref<HTMLInputElement | null>(null);
 let account: string;
 const getWs = () => {
   return new WebSocket("ws://" + serverAddress.value + "/ws/webrtc");
 };
 const getAccountUrl = () => {
   return "http://" + serverAddress.value + "/account/";
+};
+const getMediaUrl = () => {
+  return "http://" + serverAddress.value + "/media/";
 };
 const fetchRequest = async (url: string, options = {}, params = {}) => {
   try {
@@ -266,10 +278,13 @@ const logout = () => {
 };
 const triggerFaceRegistration = () => {
   console.log("triggerFaceRegistration");
-  faceFileInput.value?.click();
+  facebankFileInput.value?.click();
 };
-
-const handleFaceFileUpload = async (event: Event) => {
+const triggerFaceRecognition = () => {
+  console.log("triggerFaceRecognition");
+  facepictureFileInput.value?.click();
+};
+const handleFacebankFileUpload = async (event: Event) => {
   console.log("handleFaceFileUpload");
   const file = (event.target as HTMLInputElement).files?.[0];
   console.log("file", file);
@@ -295,6 +310,45 @@ const handleFaceFileUpload = async (event: Event) => {
   } catch (error) {
     console.error("Face registration error:", error);
     alert("人脸注册失败，请检查网络连接或服务器配置");
+  }
+};
+const handleFacepictureFileUpload = async (event: Event) => {
+  console.log("handleFacepictureFileUpload");
+  const file = (event.target as HTMLInputElement).files?.[0];
+  console.log("file", file);
+  if (!file) {
+    alert("请选择图片文件！");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("account", account);
+  formData.append("file", file);
+
+  try {
+    const response = await fetch(getMediaUrl() + "picture", {
+      method: "POST",
+      body: formData,
+    });
+    if (response.ok) {
+      // 将响应转为 Blob
+      const blob = await response.blob();
+
+      // 创建临时链接并触发下载
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "processed_image.jpg"; // 指定下载文件名
+      a.click();
+
+      // 释放内存
+      window.URL.revokeObjectURL(url);
+    } else {
+      alert("下载失败");
+    }
+  } catch (error) {
+    console.error("Face registration error:", error);
+    alert("识别失败，请检查网络连接或服务器配置");
   }
 };
 // 获取视频设备列表

@@ -4,7 +4,7 @@ import numpy as np
 from server.service.account import add_account, add_account_facebank
 from typing import List
 from ninja.files import UploadedFile
-account_api = NinjaAPI()
+account_api = NinjaAPI(urls_namespace="account")
 class RegisterModel(Schema):
     """
     Register model

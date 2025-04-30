@@ -5,11 +5,12 @@ from algorithm.face_detection import detect_face
 from algorithm import face_pose_estimate_batch
 from algorithm.face_alignment import align_faces_batch
 from algorithm import face_recognition_batch
+from algorithm.base import facebank_default_account
 
 
 
 
-def process_frame(frame, min_probs=0.7, face_threshold=0.4):
+def process_frame(frame, account = facebank_default_account ,min_probs=0.7, face_threshold=0.4):
     """
     输入的frame请为RGB格式,
     输出的frame也为RGB格式
@@ -19,7 +20,7 @@ def process_frame(frame, min_probs=0.7, face_threshold=0.4):
         return frame, [], []
     poses = face_pose_estimate_batch(hopenetlite, faces)
     aligned_faces = align_faces_batch(faces, poses)
-    results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=face_threshold, model=mobilefacenet)
+    results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=face_threshold, model=mobilefacenet, account=account)
     for (face, result) in zip(boxes, results):
         x1, y1, x2, y2 = map(int, face)
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)

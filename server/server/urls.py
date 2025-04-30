@@ -17,9 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from .controller.account import account_api
-
+from .controller.media import media_api
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # path('api/', api.urls),
     path('account/', account_api.urls),
+    path('media/', media_api.urls),
 ]
