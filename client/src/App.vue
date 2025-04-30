@@ -167,6 +167,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { IonContent, IonPage } from "@ionic/vue";
+// import { CapacitorHttp, HttpResponse } from "@capacitor/core";
+// import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 
 const localVideo = ref<HTMLVideoElement>();
 const remoteVideo = ref<HTMLVideoElement>();
@@ -201,17 +203,40 @@ const getAccountUrl = () => {
 const getMediaUrl = () => {
   return "http://" + serverAddress.value + "/media/";
 };
-const fetchRequest = async (url: string, options = {}, params = {}) => {
+const fetchRequest = async (
+  url: string,
+  options: {
+    headers?: Record<string, string>;
+    body?: any;
+    method?: "POST";
+  } = {}
+) => {
   try {
-    // 构建查询字符串（仅适用于 GET 或需要查询参数的请求）
-    const queryString = new URLSearchParams(params).toString();
-    const fullUrl = queryString ? `${url}?${queryString}` : url;
+    console.log("Request URL:", url);
+    console.log("Request Options:", options);
 
-    console.log("Request URL:", fullUrl);
+    // 发起请求 ----------- capacitorjs
+    // const response = await fetch(url, options);
+    // const response = await CapacitorHttp.post({
+    //   url: url,
+    //   headers: options.headers,
+    //   data: options.body,
+    // });
+    // // 检查响应状态
+    // if (response.status !== 200) {
+    //   const errorData = await response.data;
+    //   console.error("Error Response:", errorData);
+    //   throw new Error(errorData.message || `HTTP Error: ${response.status}`);
+    // }
+    // // 返回解析后的 JSON 数据
+    // return await response.data;
+    // 构建查询字符串（仅适用于 GET 或需要查询参数的请求）
+
+    console.log("Request URL:", url);
     console.log("Request Options:", options);
 
     // 发起请求
-    const response = await fetch(fullUrl, options);
+    const response = await fetch(url, options);
 
     // 检查响应状态
     if (!response.ok) {
@@ -315,7 +340,6 @@ const handleFacebankFileUpload = async (event: Event) => {
 const handleFacepictureFileUpload = async (event: Event) => {
   console.log("handleFacepictureFileUpload");
   const file = (event.target as HTMLInputElement).files?.[0];
-  console.log("file", file);
   if (!file) {
     alert("请选择图片文件！");
     return;
@@ -326,6 +350,30 @@ const handleFacepictureFileUpload = async (event: Event) => {
   formData.append("file", file);
 
   try {
+    // const response: HttpResponse = await CapacitorHttp.post({
+    //   url: getMediaUrl() + "picture",
+    //   responseType: "blob",
+    //   data: formData,
+    // });
+    // if (response.status === 200) {
+    //   // 将响应转为 Blob
+    //   const base64Data = btoa(
+    //     new Uint8Array(response.data).reduce(
+    //       (data, byte) => data + String.fromCharCode(byte),
+    //       ""
+    //     )
+    //   );
+    //   await Filesystem.writeFile({
+    //     path: "after_" + file.name,
+    //     data: base64Data,
+    //     directory: Directory.Documents, // 可指定目录（如 Downloads、Cache）
+    //     encoding: Encoding.UTF8,
+    //   });
+    //   const uri = await Filesystem.getUri({
+    //     directory: Directory.ExternalStorage,
+    //     path: "after_" + file.name,
+    //   });
+    //   console.log("File saved at:", uri);
     const response = await fetch(getMediaUrl() + "picture", {
       method: "POST",
       body: formData,
@@ -333,7 +381,6 @@ const handleFacepictureFileUpload = async (event: Event) => {
     if (response.ok) {
       // 将响应转为 Blob
       const blob = await response.blob();
-
       // 创建临时链接并触发下载
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");

@@ -20,7 +20,6 @@
     "@capacitor/core": "latest",
     "@capacitor/filesystem": "^7.0.1",
     "@capacitor/haptics": "latest",
-    "@capacitor/http": "^0.0.2",
     "@capacitor/keyboard": "latest",
     "@capacitor/status-bar": "latest",
     "@ionic/vue": "^8.0.0",
