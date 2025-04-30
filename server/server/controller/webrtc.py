@@ -20,6 +20,8 @@ class ProcessedVideoTrack(VideoStreamTrack):
         self.running = True
         self.executor = ThreadPoolExecutor()  # 创建线程池
         self.task = asyncio.create_task(self._process_frames())
+        self.ws: AsyncWebsocketConsumer = None
+        self.account = None
 
     async def _process_frames(self):
         while self.running:
@@ -28,10 +30,15 @@ class ProcessedVideoTrack(VideoStreamTrack):
             # pic, result, score = process_frame(pic)  # 耗时操作
             # pic, result, score = await asyncio.to_thread(process_frame, pic)  # 使用线程池处理
             pic, result, score = await asyncio.wait_for(
-                        asyncio.get_running_loop().run_in_executor(self.executor, process_frame, pic),
+                        asyncio.get_running_loop().run_in_executor(self.executor, process_frame, pic, self.account),
                         timeout=2  # 设置超时时间
                     )
-
+            self.ws.send(json.dumps({
+                "type": "recognition",
+                "result": result,
+                "score": score,
+                "timestamp": time.time(),
+            }))
             # 视频打上时间戳
             cv2.putText(pic, f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             processed_frame = VideoFrame.from_ndarray(pic, format="rgb24")
@@ -87,6 +94,7 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
         ])
         self.pc = RTCPeerConnection(config)
         self.processed_track = ProcessedVideoTrack()
+        self.processed_track.ws = self
         # self.processed_track = CameraVideoTrack()
         # # 添加候选收集监听
         @self.pc.on("icecandidate")
@@ -131,8 +139,9 @@ class WebRTCConsumer(AsyncWebsocketConsumer):
             await self.handle_candidate(data['candidate'])
             # print(f"Received ICE candidate: {data['candidate']}")
             pass
-        elif data['type'] == 'account':
-            self.account = data['data']
+        elif data['type'] == 'login':
+            self.account = data['account']
+            self.processed_track.account = data['account']
             print(f"Account set: {self.account}")
         elif data['type'] == 'data':
             await self.handle_data(data['data'])

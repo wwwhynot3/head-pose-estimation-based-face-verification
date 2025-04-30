@@ -618,8 +618,10 @@ const initWebRTC = () => {
         new RTCIceCandidate(message.candidate)
       );
       // console.log('Received ICE candidate:', message.candidate);
-    } else if (message.type === "data_channel") {
+    } else if (message.type === "recognition") {
       console.log("Received data channel:", message);
+    } else {
+      console.warn("Unknown message type:", message.type);
     }
   };
 
@@ -652,8 +654,20 @@ onMounted(async () => {
 
     // 用户登录后初始化 WebSocket
     ws = getWs();
+    // ws.send(
+    //   JSON.stringify({
+    //     type: "login",
+    //     account: account,
+    //   })
+    // );
     ws.onopen = () => {
       console.log("WebSocket 已连接");
+      ws.send(
+        JSON.stringify({
+          type: "login",
+          account: account,
+        })
+      );
     };
     ws.onerror = (error) => {
       console.error("WebSocket 连接错误:", error);

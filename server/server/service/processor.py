@@ -15,6 +15,7 @@ def process_frame(frame, account = facebank_default_account ,min_probs=0.7, face
     输入的frame请为RGB格式,
     输出的frame也为RGB格式
     """
+    # print(f"Processing frame for account {account}...")
     boxes, faces, probs = detect_face(frame, min_prob=min_probs)
     if len(boxes) == 0:
         return frame, [], []
