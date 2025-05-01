@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 import json
 import time
@@ -47,7 +48,8 @@ class ProcessedVideoTrack(VideoStreamTrack):
                     _ = self.processed_queue.get_nowait()
                 await self.processed_queue.put((processed_frame, frame.pts, frame.time_base))
         except Exception as e:
-            print(f"Error processing frame: {e}")
+            print(f"Error processing frame")
+            traceback.print_exc()
 
     async def recv(self):
         # print("Receiving processed frame...")
