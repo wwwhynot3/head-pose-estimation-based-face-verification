@@ -51,7 +51,7 @@
             class="account-button"
             @click="currentUser ? logout() : login()"
           >
-            {{ currentUser ? "🔓 登出" : "🔒 登入" }}
+            {{ currentUser ? "🔓 登出" : "🔒 登陆" }}
           </button>
           <span class="user-info">
             {{ currentUser ? "用户名: " + currentUser : "未登录" }}
@@ -59,7 +59,7 @@
         </div>
 
         <div class="button-group">
-          <button @click="triggerFaceRegistration">🎟️注册人脸</button>
+          <button @click="triggerFaceRegistration">📮注册人脸</button>
           <input
             ref="facebankFileInput"
             type="file"
@@ -76,8 +76,8 @@
           <button @click="selectSource('camera')">📷 本地相机</button>
           <button @click="selectSource('network')">🌐 网络视频源</button>
           <!-- 示例视频源 https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4 -->
-          <button @click="selectSource('file')">📁 本地视频文件</button>
-          <button @click="triggerFaceRecognition()">📁 本地图像文件</button>
+          <button @click="selectSource('file')">🎞️ 本地视频文件</button>
+          <button @click="triggerFaceRecognition()">🖼️ 本地图像文件</button>
           <input
             ref="facepictureFileInput"
             type="file"
@@ -216,7 +216,7 @@ let peerConnection: RTCPeerConnection;
 let ws: WebSocket;
 const no_person_warning = ref<boolean>(true);
 let last_waring_timestamp = 0;
-const no_person_warning_timeout = ref<number>(1);
+const no_person_warning_timeout = ref<number>(10);
 const showWarningModal = ref(false);
 const warningMessage = ref("");
 // 控制弹窗显示
@@ -230,7 +230,7 @@ const currentUser = ref<string | null>(null);
 // Login modal fields
 const showLoginModal = ref(false);
 const logined = ref(false);
-const serverAddress = ref("127.0.0.1:8000");
+const serverAddress = ref("192.168.31.192:8000");
 const username = ref("");
 const password = ref("");
 // 人脸注册
@@ -238,13 +238,13 @@ const facebankFileInput = ref<HTMLInputElement | null>(null);
 const facepictureFileInput = ref<HTMLInputElement | null>(null);
 let account: string;
 const getWs = () => {
-  return new WebSocket("ws://" + serverAddress.value + "/ws/webrtc");
+  return new WebSocket("wss://" + serverAddress.value + "/ws/webrtc");
 };
 const getAccountUrl = () => {
-  return "http://" + serverAddress.value + "/account/";
+  return "https://" + serverAddress.value + "/account/";
 };
 const getMediaUrl = () => {
-  return "http://" + serverAddress.value + "/media/";
+  return "https://" + serverAddress.value + "/media/";
 };
 const fetchRequest = async (
   url: string,
@@ -308,7 +308,7 @@ const closeWarningModal = () => {
 
 // 示例：替换 alert 的地方调用 openWarningModal
 const handleRecognitionWarning = () => {
-  openWarningModal("人脸识别失败，请检查摄像头或网络连接");
+  openWarningModal("当前没有检测到人脸");
 };
 const handleLogin = async () => {
   /*
@@ -514,6 +514,7 @@ const selectSource = async (sourceType: "camera" | "network" | "file") => {
 // 新增摄像头选择方法
 const selectCamera = async (deviceId: string) => {
   try {
+    console.log("Selected camera device ID:", deviceId);
     showCameraSelection.value = false;
     await switchVideoSource("camera", deviceId);
   } catch (error) {
