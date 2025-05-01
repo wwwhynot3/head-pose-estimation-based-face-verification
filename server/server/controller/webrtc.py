@@ -24,27 +24,30 @@ class ProcessedVideoTrack(VideoStreamTrack):
         self.account = None
 
     async def _process_frames(self):
-        while self.running:
-            frame = await self.frame_queue.get()
-            pic = frame.to_ndarray(format="rgb24")
-            # pic, result, score = process_frame(pic)  # 耗时操作
-            # pic, result, score = await asyncio.to_thread(process_frame, pic)  # 使用线程池处理
-            pic, result, score = await asyncio.wait_for(
-                        asyncio.get_running_loop().run_in_executor(self.executor, process_frame, pic, self.account),
-                        timeout=2  # 设置超时时间
-                    )
-            await self.ws.send(json.dumps({
-                "type": "recognition",
-                "result": result,
-                "score": score,
-                "timestamp": int(time.time()),
-            }))
-            # 视频打上时间戳
-            cv2.putText(pic, f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            processed_frame = VideoFrame.from_ndarray(pic, format="rgb24")
-            if self.processed_queue.full():
-                _ = self.processed_queue.get_nowait()
-            await self.processed_queue.put((processed_frame, frame.pts, frame.time_base))
+        try:
+            while self.running:
+                frame = await self.frame_queue.get()
+                pic = frame.to_ndarray(format="rgb24")
+                # pic, result, score = process_frame(pic)  # 耗时操作
+                # pic, result, score = await asyncio.to_thread(process_frame, pic)  # 使用线程池处理
+                pic, result, score = await asyncio.wait_for(
+                            asyncio.get_running_loop().run_in_executor(self.executor, process_frame, pic, self.account),
+                            timeout=2  # 设置超时时间
+                        )
+                await self.ws.send(json.dumps({
+                    "type": "recognition",
+                    "result": result,
+                    # "score": score,
+                    "timestamp": int(time.time()),
+                }))
+                # 视频打上时间戳
+                cv2.putText(pic, f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                processed_frame = VideoFrame.from_ndarray(pic, format="rgb24")
+                if self.processed_queue.full():
+                    _ = self.processed_queue.get_nowait()
+                await self.processed_queue.put((processed_frame, frame.pts, frame.time_base))
+        except Exception as e:
+            print(f"Error processing frame: {e}")
 
     async def recv(self):
         # print("Receiving processed frame...")

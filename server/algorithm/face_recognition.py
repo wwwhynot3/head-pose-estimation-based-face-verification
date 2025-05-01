@@ -42,14 +42,15 @@ def face_recognition_batch(image_batch, model, threshold=0.6, account=None):
     query_embs = _extract_embeddings_batch(image_batch, model)
     if not account:
         face_targets, face_names = facebank_map[facebank_default_account]
-    # 计算相似度
+    else:
+        face_targets, face_names = facebank_map[account]
+        # 计算相似度
     if len(face_targets) > 0:
         cosine_sim = torch.mm(query_embs, face_targets.T)  # [batch_size, num_targets]
         max_sims, max_indices = torch.max(cosine_sim, dim=1)
     else:
         max_sims = torch.full((len(image_batch),), -1.0, device=device)
         max_indices = torch.full((len(image_batch),), -1, device=device)
-
     # 转换为CPU数据
     max_sims = max_sims.cpu().numpy()
     max_indices = max_indices.cpu().numpy()
@@ -61,7 +62,6 @@ def face_recognition_batch(image_batch, model, threshold=0.6, account=None):
             results.append(face_names[idx + 1])  # +1 跳过Unknown
         else:
             results.append("Unknown")
-
     return results, max_sims
 
 
