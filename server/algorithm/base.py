@@ -184,10 +184,12 @@ def cv2PutChineseText(img, text, position, textColor=(0, 0, 255), textSize=15):
     # 转换回OpenCV格式
     return np.asarray(img)
 
-facebank_map = init_facebank()
 font_size = 25
 font_style = ImageFont.truetype(
     "resources/fonts/SimSun.ttf", font_size, encoding="utf-8")
+facebank_map = init_facebank()
+# for key, value in facebank_map.items():
+#     print(value)
 # face_targets, face_names = facebank_map['1']
 # face_targets, face_names = prepare_facebank(facebank_path + '/1', mobilefacenet, force_rebuild=True)
 # prepare_facebank(facebank_path + '/zhengkai', mobilefacenet, force_rebuild=True)

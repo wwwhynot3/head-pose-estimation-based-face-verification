@@ -2,7 +2,11 @@
   <ion-page>
     <ion-content :fullscreen="true">
       <div class="video-container">
-        <button class="toggle-button" @click="toggleVideoDisplayMode">
+        <button
+          class="toggle-button"
+          style="background-color: transparent"
+          @click="toggleVideoDisplayMode"
+        >
           🔄
         </button>
         <!-- 视频容器添加 flex 居中 -->
@@ -51,7 +55,7 @@
             class="account-button"
             @click="currentUser ? logout() : login()"
           >
-            {{ currentUser ? "🔓 登出" : "🔒 登陆" }}
+            {{ currentUser ? "🔓 登出" : "🔒 登录" }}
           </button>
           <span class="user-info">
             {{ currentUser ? "用户名: " + currentUser : "未登录" }}
@@ -186,7 +190,7 @@
     >
       <div class="modal">
         <div class="modal-header">
-          <h3>警告</h3>
+          <h3 style="color: red">警告</h3>
           <button class="close-button" @click="closeWarningModal">
             &times;
           </button>
