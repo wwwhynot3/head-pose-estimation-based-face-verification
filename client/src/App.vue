@@ -214,7 +214,7 @@ let localStream: MediaStream;
 let peerConnection: RTCPeerConnection;
 // const ws = new WebSocket("ws://127.0.0.1:8000/ws/webrtc");
 let ws: WebSocket;
-const no_person_warning = ref<boolean>(true);
+const no_person_warning = ref<boolean>(false);
 let last_waring_timestamp = 0;
 const no_person_warning_timeout = ref<number>(10);
 const showWarningModal = ref(false);
