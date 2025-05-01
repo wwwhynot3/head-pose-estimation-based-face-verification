@@ -47,7 +47,7 @@ mobilefacenet.eval()
 # mobilefacenet_qint8.eval()
 
 
-prcnn = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=40,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
+prcnn = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
 # prcnn.load_state_dict(torch.load(prcnn_path, map_location=device))
 prcnn.eval()
 #

@@ -14,6 +14,8 @@ def _crop_faces(image, boxes, probs, min_prob) -> tuple[list, list, list]:
         if prob < min_prob:
             continue
         x1, y1, x2, y2 = map(int, box)
+        if x1 <= 0 or y1 <= 0 or x2 <= 0 or y2 <= 0:
+            continue
         valid_boxes.append(box)
         faces.append(image[y1:y2, x1:x2])
         probss.append(prob)
