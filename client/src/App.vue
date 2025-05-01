@@ -57,6 +57,7 @@
             {{ currentUser ? "用户名: " + currentUser : "未登录" }}
           </span>
         </div>
+
         <div class="button-group">
           <button @click="triggerFaceRegistration">🎟️注册人脸</button>
           <input
@@ -84,6 +85,23 @@
             style="display: none"
             @change="handleFacepictureFileUpload"
           />
+        </div>
+        <hr class="divider" />
+        <div class="button-group horizontal">
+          <label>
+            <input type="checkbox" v-model="no_person_warning" />
+            检测不到人脸是否警告
+          </label>
+          <div>
+            <label for="warning-threshold">警告阈值 (秒):</label>
+            <input
+              id="warning-threshold"
+              type="number"
+              v-model="no_person_warning_timeout"
+              min="1"
+              style="width: 60px; margin-left: 5px"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -161,6 +179,26 @@
         </div>
       </div>
     </div>
+    <div
+      v-if="showWarningModal"
+      class="modal-overlay"
+      @click.self="closeWarningModal"
+    >
+      <div class="modal">
+        <div class="modal-header">
+          <h3>警告</h3>
+          <button class="close-button" @click="closeWarningModal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>{{ warningMessage }}</p>
+        </div>
+        <div class="button-group">
+          <button @click="closeWarningModal">确定</button>
+        </div>
+      </div>
+    </div>
   </ion-page>
 </template>
 
@@ -178,7 +216,9 @@ let peerConnection: RTCPeerConnection;
 let ws: WebSocket;
 const no_person_warning = ref<boolean>(true);
 let last_waring_timestamp = 0;
-let no_person_warning_timeout = ref<number>(1);
+const no_person_warning_timeout = ref<number>(1);
+const showWarningModal = ref(false);
+const warningMessage = ref("");
 // 控制弹窗显示
 const showSourceSelection = ref<boolean>(true);
 const isHovering = ref(false);
@@ -254,6 +294,21 @@ const fetchRequest = async (
     console.error("Fetch Error:", error);
     throw new Error(`网络错误: ${error}`);
   }
+};
+// 打开警告弹窗
+const openWarningModal = (message: string) => {
+  warningMessage.value = message;
+  showWarningModal.value = true;
+};
+
+// 关闭警告弹窗
+const closeWarningModal = () => {
+  showWarningModal.value = false;
+};
+
+// 示例：替换 alert 的地方调用 openWarningModal
+const handleRecognitionWarning = () => {
+  openWarningModal("人脸识别失败，请检查摄像头或网络连接");
 };
 const handleLogin = async () => {
   /*
@@ -605,6 +660,9 @@ const initWebRTC = () => {
   };
   peerConnection.onconnectionstatechange = () => {
     console.log("Peer connection state:", peerConnection.connectionState);
+    if (peerConnection.connectionState === "connected") {
+      last_waring_timestamp = Date.now() / 1000;
+    }
   };
   // 处理信令服务器消息
   ws.onmessage = async (event) => {
@@ -622,25 +680,23 @@ const initWebRTC = () => {
       );
       // console.log('Received ICE candidate:', message.candidate);
     } else if (message.type === "recognition") {
-      console.log("Received data channel:", message);
       const timestamp: number = message.timestamp;
       const result: Array<any> = message.result;
-      console.log(no_person_warning.value);
-      console.log("Received recognition result:", result.length === 0);
-      console.log(
-        "Received recognition result:",
-        timestamp - last_waring_timestamp > no_person_warning_timeout.value
-      );
       // const score: Number = message.score;
       if (no_person_warning.value) {
-        if (
-          result.length === 0 &&
-          timestamp - last_waring_timestamp > no_person_warning_timeout.value
-        ) {
+        if (result.length === 0) {
+          if (
+            timestamp - last_waring_timestamp >
+            no_person_warning_timeout.value
+          ) {
+            handleRecognitionWarning();
+            last_waring_timestamp = timestamp;
+          }
+        } else {
           last_waring_timestamp = timestamp;
-          // 提示错误
-          alert("人脸识别失败，请检查摄像头或网络连接");
         }
+      } else {
+        last_waring_timestamp = timestamp;
       }
     } else {
       console.warn("Unknown message type:", message.type);
@@ -657,6 +713,7 @@ const initWebRTC = () => {
 
   // 监听远程轨道
   peerConnection.ontrack = (event) => {
+    console.log("Received remote track:", event.track);
     if (remoteVideo.value && event.streams[0]) {
       remoteVideo.value.srcObject = event.streams[0];
     }
