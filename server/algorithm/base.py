@@ -17,8 +17,8 @@ from algorithm.model.hopenetlite import HopeNetLite
 
 
 
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cpu')
 facebank_path='resources/facebank'
 faces_dir='resources/faces'
 facebank_file_name = 'facebank.pth'
