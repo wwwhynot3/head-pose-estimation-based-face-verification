@@ -16,7 +16,7 @@ def add_account(account) -> str:
 def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:
     yaw, pitch, row =face_pose_estimate_single(model, face)
     # 三者的绝对值都小于10度
-    if not (abs(yaw) < 10 and abs(pitch) < 10 and abs(row) < 10):
+    if not (abs(yaw) < 30 and abs(pitch) < 30 and abs(row) < 30):
         raise ValueError(f"人脸角度过大，请上传正脸照片 yaw={yaw}, pitch={pitch}, roll={row}")
     facebank_dir = os.path.join(facebank_path, account)
     cv2.imwrite(os.path.join(facebank_dir, file_name), face)
