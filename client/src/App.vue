@@ -662,6 +662,9 @@ const initWebRTC = () => {
     console.log("Peer connection state:", peerConnection.connectionState);
     if (peerConnection.connectionState === "connected") {
       last_waring_timestamp = Date.now() / 1000;
+    } else if (peerConnection.connectionState === "disconnected") {
+      alert("WebRtc连接断开，请检查网络或重新登录");
+      location.reload();
     }
   };
   // 处理信令服务器消息
@@ -745,9 +748,13 @@ onMounted(async () => {
     };
     ws.onerror = (error) => {
       console.error("WebSocket 连接错误:", error);
+      alert("WebSocket 连接错误，请检查服务器地址或网络连接");
+      location.reload();
     };
     ws.onclose = () => {
       console.log("WebSocket 已关闭");
+      alert("WebSocket 已关闭，请检查服务器地址或网络连接");
+      location.reload();
     };
     console.log("OnMounted...");
   } catch (error) {
