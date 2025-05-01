@@ -42,7 +42,7 @@ class ProcessedVideoTrack(VideoStreamTrack):
                     "timestamp": int(time.time()),
                 }))
                 # 视频打上时间戳
-                cv2.putText(pic, f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                pic = cv2.putText(pic.copy(), f"Time: {time.strftime('%H:%M:%S')}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 processed_frame = VideoFrame.from_ndarray(pic, format="rgb24")
                 if self.processed_queue.full():
                     _ = self.processed_queue.get_nowait()

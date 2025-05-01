@@ -1,9 +1,11 @@
 import os.path
+import traceback
 from pathlib import Path
 
 import cv2
 import numpy as np
 import torch
+from PIL import ImageFont, ImageDraw, Image
 from torchvision import transforms as trans
 import torchvision
 
@@ -47,7 +49,7 @@ mobilefacenet.eval()
 # mobilefacenet_qint8.eval()
 
 
-prcnn = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
+prcnn = PRCNN(image_size=160, thresholds=[0.98, 0.99],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
 # prcnn.load_state_dict(torch.load(prcnn_path, map_location=device))
 prcnn.eval()
 #
@@ -106,7 +108,6 @@ def prepare_facebank(facebank_path, model, force_rebuild=False):
     """
     facebank_file = Path(facebank_path) / facebank_file_name
     names_file = Path(facebank_path) / facebank_name_list_name
-
     if not force_rebuild and facebank_file.exists() and names_file.exists():
         targets = torch.load(facebank_file, map_location=device)
         names = np.load(names_file)
@@ -114,32 +115,34 @@ def prepare_facebank(facebank_path, model, force_rebuild=False):
 
     embeddings = []
     name_list = ['Unknown']
+    try:
     # 批量处理每个人物的图像
-    for person in Path(facebank_path).iterdir():
-        if person.is_dir() or person.suffix == '.pth' or person.suffix == '.npy':
-            continue
-        img = cv2.imread(str(person))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        name_list.append(person.stem)
-        # 批量处理原始图像和镜像图像
-        with torch.no_grad():
-            # 处理原始图像
-            orig_tensors = mobilefacenet_transform(img).to(device).unsqueeze(0)
-            mirror_imgs = cv2.flip(img, 1)
-            mirror_tensors = mobilefacenet_transform(mirror_imgs).to(device).unsqueeze(0)
+        for person in Path(facebank_path).iterdir():
+            if person.is_dir() or person.suffix == '.pth' or person.suffix == '.npy':
+                continue
+            img = cv2.imread(str(person))
+            name_list.append(person.stem)
+            # 批量处理原始图像和镜像图像
+            with torch.no_grad():
+                # 处理原始图像
+                orig_tensors = mobilefacenet_transform(img).to(device).unsqueeze(0)
+                mirror_imgs = cv2.flip(img, 1)
+                mirror_tensors = mobilefacenet_transform(mirror_imgs).to(device).unsqueeze(0)
 
-            orig_embs = model(orig_tensors)
-            mirror_embs = model(mirror_tensors)
-            # 融合特征并归一化
-            fused_embs = l2_norm(orig_embs + mirror_embs)
+                orig_embs = model(orig_tensors)
+                mirror_embs = model(mirror_tensors)
+                # 融合特征并归一化
+                fused_embs = l2_norm(orig_embs + mirror_embs)
 
-            # 计算平均特征并二次归一化
-            avg_emb = torch.mean(fused_embs, dim=0, keepdim=True)
-            avg_emb = l2_norm(avg_emb)
+                # 计算平均特征并二次归一化
+                avg_emb = torch.mean(fused_embs, dim=0, keepdim=True)
+                avg_emb = l2_norm(avg_emb)
 
-            embeddings.append(avg_emb)
-            # embeddings.append(orig_embs)
-
+                embeddings.append(avg_emb)
+                # embeddings.append(orig_embs)
+    except Exception as e:
+        traceback.print_exc()
+        raise e
     # 保存特征库
     targets = torch.cat(embeddings) if embeddings else torch.Tensor()
     names = np.array(name_list)
@@ -171,8 +174,20 @@ def init_facebank():
             facebank_map[facebank.name] = (targets, names)
     return facebank_map
 
+def cv2PutChineseText(img, text, position, textColor=(0, 0, 255), textSize=15):
+    img = Image.fromarray(img)
+    draw = ImageDraw.Draw(img)
+    # 字体的格式
+
+    # 绘制文本
+    draw.text(position, text, textColor, font=font_style)
+    # 转换回OpenCV格式
+    return np.asarray(img)
 
 facebank_map = init_facebank()
+font_size = 25
+font_style = ImageFont.truetype(
+    "resources/fonts/SimSun.ttf", font_size, encoding="utf-8")
 # face_targets, face_names = facebank_map['1']
 # face_targets, face_names = prepare_facebank(facebank_path + '/1', mobilefacenet, force_rebuild=True)
 # prepare_facebank(facebank_path + '/zhengkai', mobilefacenet, force_rebuild=True)
