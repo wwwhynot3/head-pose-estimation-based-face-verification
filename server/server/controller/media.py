@@ -10,7 +10,7 @@ media_api = NinjaAPI(urls_namespace="media")
 
 
 @media_api.post('picture')
-def register_face(request, account: str = Form(...), file:UploadedFile = File(...)):
+def rec_face(request, account: str = Form(...), file:UploadedFile = File(...)):
     """
     Recognize a Face Picture
     """
@@ -26,6 +26,7 @@ def register_face(request, account: str = Form(...), file:UploadedFile = File(..
         face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
         # 添加到facebank
         frame, results, scores = process_frame(face)
+        cv2.cvtColor(frame, cv2.COLOR_RGB2BGR, frame)
         cv2.imwrite(f'resources/upload/after_{file.name}', frame)
         success, frame_res = cv2.imencode('.jpg', frame)
         frame_bytes = frame_res.tobytes()
