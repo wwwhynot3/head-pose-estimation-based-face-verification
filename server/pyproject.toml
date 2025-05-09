@@ -1,0 +1,27 @@
+[project]
+name = "head-pose-estimation-based-face-verification"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiortc>=1.11.0",
+    "channels>=4.2.2",
+    "django>=5.2",
+    "django-cors-headers>=4.7.0",
+    "django-ninja>=1.4.1",
+    "expecttest>=0.3.0",
+    "numpy>=2.2.4",
+    "opencv-python>=4.11.0.86",
+    "pillow>=11.1.0",
+    "psutil>=7.0.0",
+    "scipy>=1.15.2",
+    "timm>=1.0.15",
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "uvicorn[standard]>=0.34.2",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
