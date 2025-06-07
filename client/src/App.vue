@@ -234,7 +234,8 @@ const currentUser = ref<string | null>(null);
 // Login modal fields
 const showLoginModal = ref(false);
 const logined = ref(false);
-const serverAddress = ref("192.168.31.192:8000");
+const defaultServerAddress = "localhost:8000"; // 默认服务器地址
+const serverAddress = ref(defaultServerAddress);
 const username = ref("");
 const password = ref("");
 // 人脸注册
@@ -357,7 +358,7 @@ const logout = () => {
   if (confirm("确定要登出吗？")) {
     currentUser.value = null;
     // Clear fields
-    serverAddress.value = "127.0.0.1:8000";
+    serverAddress.value = defaultServerAddress;
     username.value = "";
     password.value = "";
     location.reload();

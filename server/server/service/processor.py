@@ -31,6 +31,10 @@ def process_frame(frame, account = facebank_default_account):
     poses = face_pose_estimate_batch(hopenetlite, faces)
     aligned_faces = align_faces_batch(faces, poses)
     results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=0.4, model=mobilefacenet, account=account)
+    # frame = frame.copy()
+    # 防止内存可读性导致的错误
+    if not frame.flags.writeable:
+        frame = frame.copy()
     for (face, result) in zip(boxes, results):
         x1, y1, x2, y2 = map(int, face)
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)

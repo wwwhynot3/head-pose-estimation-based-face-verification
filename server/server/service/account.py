@@ -14,7 +14,7 @@ def add_account(account) -> str:
         print(f'Account {account} created.')
     else:
         print(f'Account {account} already exists.')
-    prepare_facebank(account_path, model=hopenetlite, force_rebuild=True)
+    prepare_facebank(account_path, model=mobilefacenet, force_rebuild=True)
     return str(account_path)
 
 def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:

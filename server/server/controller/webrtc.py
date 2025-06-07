@@ -25,8 +25,9 @@ class ProcessedVideoTrack(VideoStreamTrack):
         self.account = None
 
     async def _process_frames(self):
-        try:
-            while self.running:
+       
+        while self.running:
+            try:
                 frame = await self.frame_queue.get()
                 pic = frame.to_ndarray(format="rgb24")
                 # pic, result, score = process_frame(pic)  # 耗时操作
@@ -47,9 +48,9 @@ class ProcessedVideoTrack(VideoStreamTrack):
                 if self.processed_queue.full():
                     _ = self.processed_queue.get_nowait()
                 await self.processed_queue.put((processed_frame, frame.pts, frame.time_base))
-        except Exception as e:
-            print(f"Error processing frame")
-            traceback.print_exc()
+            except Exception as e:
+                print(f"Error processing frame")
+                traceback.print_exc()
 
     async def recv(self):
         # print("Receiving processed frame...")
