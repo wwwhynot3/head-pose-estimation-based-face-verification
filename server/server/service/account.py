@@ -14,7 +14,7 @@ def add_account(account) -> str:
         print(f'Account {account} created.')
     else:
         print(f'Account {account} already exists.')
-    prepare_facebank(account_path, model=mobilefacenet, force_rebuild=True)
+    facebank_map[account] = prepare_facebank(account_path, model=mobilefacenet, force_rebuild=True)
     return str(account_path)
 
 def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:
@@ -34,5 +34,5 @@ def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:
     cv2.imwrite(f'resources/upload/aligned_{file_name}', aligned_face)
     cv2.imwrite(str(os.path.join(facebank_dir, file_name)), aligned_face)
 
-    facebank_map[account] = prepare_facebank(facebank_dir, mobilefacenet, force_rebuild=True)
+    facebank_map[account] = prepare_facebank(facebank_dir, model=mobilefacenet, force_rebuild=True)
     return facebank_dir
