@@ -5,7 +5,7 @@ import cv2
 from algorithm.base import *
 from algorithm.face_pose_estimation import face_pose_estimate_single, face_pose_estimate_batch
 from algorithm.face_detection import detect_face
-from algorithm.face_alignment import align_faces_batch
+from algorithm.face_alignment_euler import align_faces_batch
 def add_account(account) -> str:
     # 创建一个新的账户文件夹
     account_path = Path(facebank_path) / account

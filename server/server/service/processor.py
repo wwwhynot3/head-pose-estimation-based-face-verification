@@ -3,7 +3,7 @@ import cv2
 from algorithm import hopenetlite, mobilefacenet, font_size
 from algorithm.face_detection import detect_face
 from algorithm.face_pose_estimation import face_pose_estimate_batch
-from algorithm.face_alignment import align_faces_batch
+from algorithm.face_alignment_euler import align_faces_batch
 from algorithm import face_recognition_batch
 from algorithm.base import facebank_default_account, cv2PutChineseText
 

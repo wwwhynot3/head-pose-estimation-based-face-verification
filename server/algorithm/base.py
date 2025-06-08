@@ -11,8 +11,7 @@ import torchvision
 
 from algorithm.model.mobilefacenet import l2_norm, MobileFaceNet
 from algorithm.model.prcnn import PRCNN
-from algorithm.model.quantization import quantize_model
-# from algorithm.model import MobileFaceNet, PRCNN, HopeNet, ShuffledHopeNet, quantize_model
+from algorithm.model.mtcnn import MTCNN
 from algorithm.model.hopenet import HopeNet
 from algorithm.model.shufflehopenet import ShuffledHopeNet
 from algorithm.model.hopenetlite import HopeNetLite
@@ -32,6 +31,7 @@ mobilefacenet_path = 'resources/model/mobilefacenet.pt'
 # mobilefacenet_path = 'resources/model/face_recognition_mv.pkl'
 pnet_path = 'resources/model/pnet.pt'
 rnet_path = 'resources/model/rnet.pt'
+onet_path = 'resources/model/onet.pt'
 hopenet_path = 'resources/model/hopenet.pt'
 shuffledhopenet_path = 'resources/model/shuffledhopenet.pt'
 hopenetlite_path = 'resources/model/hopenetlite.pt'
@@ -52,6 +52,8 @@ mobilefacenet.eval()
 prcnn = PRCNN(image_size=160, thresholds=[0.98, 0.99],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
 # prcnn.load_state_dict(torch.load(prcnn_path, map_location=device))
 prcnn.eval()
+mtcnn = MTCNN(image_size=160, thresholds=[0.6, 0.6, 0.7],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, onet_path=onet_path, device=device).to(device)
+mtcnn.eval()
 #
 # prcnn_qint8 = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=40,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device).quantize().eval()
 
