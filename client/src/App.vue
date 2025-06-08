@@ -11,10 +11,10 @@
         </button>
         <!-- 视频容器添加 flex 居中 -->
         <div v-show="videoDisplayMode === 'localStream'">
-          <video ref="localVideo" autoplay playsinline></video>
+          <video ref="localVideo" autoplay playsinline muted></video>
         </div>
         <div v-show="videoDisplayMode === 'remoteStream'">
-          <video ref="remoteVideo" autoplay playsinline></video>
+          <video ref="remoteVideo" autoplay playsinline muted></video>
         </div>
       </div>
     </ion-content>
@@ -563,6 +563,11 @@ const switchVideoSource = async (
     } else if (sourceType === "file" && source) {
       // 使用本地视频文件
       localStream = await fetchFileStream(source);
+      // 检查视频轨道是否存在
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (!videoTrack) {
+        throw new Error("无法获取视频轨道，请检查文件格式");
+      }
     } else {
       throw new Error("Invalid source type or missing source URL");
     }
@@ -570,6 +575,14 @@ const switchVideoSource = async (
     // 将本地流绑定到视频元素
     if (localVideo.value) {
       localVideo.value.srcObject = localStream;
+      try {
+        await localVideo.value.play(); // 确保在设置 srcObject 后调用 play()
+        console.log("Local video playing successfully");
+      } catch (error) {
+        console.error("Error playing video:", error);
+      }
+    } else {
+      console.error("No Local Video Value");
     }
     // 更新 WebRTC 连接中的视频轨道
     const videoTrack = localStream.getVideoTracks()[0];
@@ -578,10 +591,15 @@ const switchVideoSource = async (
         .getSenders()
         .find((s) => s.track?.kind === "video");
       if (sender) {
+        console.log("Replacing existing video track:", videoTrack);
         await sender.replaceTrack(videoTrack);
+      } else {
+        console.warn("No existing video sender found, adding new track");
+        peerConnection.addTrack(videoTrack, localStream);
       }
     } else {
       // 如果没有现有的连接，则初始化新的连接
+      console.log("Init WebRTC connection");
       initWebRTC();
     }
     console.log(`Switched video source to: ${sourceType}`);
@@ -621,7 +639,21 @@ const fetchNetworkStream = async (url: string): Promise<MediaStream> => {
 const fetchFileStream = async (filePath: string): Promise<MediaStream> => {
   const video = document.createElement("video");
   video.src = filePath;
+  video.onloadedmetadata = () => {
+    console.log("Video metadata loaded:", video.duration);
+  };
+  video.muted = true; // 静音绕过自动播放限制
+  document.body.appendChild(video);
+  // 等待元数据加载和视频播放
+  await new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onplay = resolve; // 确保播放状态
+    video.onerror = reject;
+    setTimeout(() => reject(new Error("视频加载超时")), 10000);
+  });
+  // console.log("waiting for playing video...");
   await video.play();
+  // console.log("Video playing from file:", filePath);
   const stream = (
     video as HTMLVideoElement & { captureStream?: () => MediaStream }
   ).captureStream?.();
@@ -724,6 +756,7 @@ const initWebRTC = () => {
   peerConnection.ontrack = (event) => {
     console.log("Received remote track:", event.track);
     if (remoteVideo.value && event.streams[0]) {
+      console.log("Setting remote video stream");
       remoteVideo.value.srcObject = event.streams[0];
     }
   };
