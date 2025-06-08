@@ -52,7 +52,7 @@ mobilefacenet.eval()
 prcnn = PRCNN(image_size=160, thresholds=[0.98, 0.99],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device)
 # prcnn.load_state_dict(torch.load(prcnn_path, map_location=device))
 prcnn.eval()
-mtcnn = MTCNN(image_size=160, thresholds=[0.6, 0.6, 0.7],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, onet_path=onet_path, device=device).to(device)
+mtcnn = MTCNN(image_size=160, thresholds=[0.4, 0.4, 0.6],min_face_size=80,pnet_path=pnet_path, rnet_path=rnet_path, onet_path=onet_path, device=device).to(device)
 mtcnn.eval()
 #
 # prcnn_qint8 = PRCNN(image_size=160, thresholds=[0.8, 0.9],min_face_size=40,pnet_path=pnet_path, rnet_path=rnet_path, device=device).to(device).quantize().eval()

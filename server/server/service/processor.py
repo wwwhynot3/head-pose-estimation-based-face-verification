@@ -1,9 +1,13 @@
+import time
+
 import cv2
 
+import algorithm
 from algorithm import hopenetlite, mobilefacenet, font_size
 from algorithm.face_detection import detect_face
 from algorithm.face_pose_estimation import face_pose_estimate_batch
 from algorithm.face_alignment_euler import align_faces_batch
+from algorithm.face_alignment_landmark import align_faces_batch
 from algorithm import face_recognition_batch
 from algorithm.base import facebank_default_account, cv2PutChineseText
 
@@ -25,11 +29,15 @@ def process_frame(frame, account = facebank_default_account):
     输出的frame也为RGB格式
     """
     # print(f"Processing frame for account {account}...")
-    boxes, faces, probs = detect_face(frame, min_prob=0.9)
+    boxes, faces, probs, landmarks = detect_face(frame, min_prob=0.9, landmark=True)
     if len(boxes) == 0:
         return frame, [], []
     poses = face_pose_estimate_batch(hopenetlite, faces)
-    aligned_faces = align_faces_batch(faces, poses)
+    aligned_faces = algorithm.face_alignment_euler.align_faces_batch(faces, poses)
+    timestamp = time.time()
+    cv2.imwrite(f'resources/upload/euler_{timestamp}.jpg', aligned_faces[0])
+    aligned_faces =  algorithm.face_alignment_landmark.align_faces_batch(aligned_faces, boxes, landmarks)
+    cv2.imwrite(f'resources/upload/landmark_{timestamp}.jpg', aligned_faces[0])
     results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=0.4, model=mobilefacenet, account=account)
     # frame = frame.copy()
     # 防止内存可读性导致的错误

@@ -62,10 +62,10 @@ class ProcessedVideoTrack(VideoStreamTrack):
         return processed_frame
 
     async def put_frame(self, frame):
+        # print("Frame put into queue.")
         if self.frame_queue.full():
             _ = self.frame_queue.get_nowait()
         await self.frame_queue.put(frame)
-        # print("Frame put into queue.")
 
 class CameraVideoTrack(VideoStreamTrack):
     def __init__(self):

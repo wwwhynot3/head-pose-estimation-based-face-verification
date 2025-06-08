@@ -55,7 +55,7 @@ def detect_face(frame, min_prob=0, landmark=False):
 #     print('done')
 
 # def test_mtcnn():
-#     from facenet_pytorch import MTCNN
+    from facenet_pytorch import MTCNN
 #     cnn = MTCNN(image_size=160, thresholds=[0.6, 0.7, 0.7], device='cuda',min_face_size=40)
 #     frame = cv2.imread('resources/pictures/1.jpeg')
 #     boxes, probs = cnn.detect(frame)
