@@ -176,7 +176,7 @@ def init_facebank():
             facebank_map[facebank.name] = (targets, names)
     return facebank_map
 
-def cv2PutChineseText(img, text, position, textColor=(0, 0, 255), textSize=15):
+def cv2PutChineseText(img, text, position, textColor=(0, 255, 255), textSize=30):
     img = Image.fromarray(img)
     draw = ImageDraw.Draw(img)
     # 字体的格式
