@@ -26,13 +26,15 @@ def add_account_facebank(account, file_name, face, model=hopenetlite) -> str:
     euler = face_pose_estimate_batch(model, faces)
     yaw, pitch, row = euler[0]
     # 三者的绝对值都小于10度
-    if not (abs(yaw) < 30 and abs(pitch) < 30 and abs(row) < 30):
+    if not (abs(yaw) < 20 and abs(pitch) < 20 and abs(row) < 20):
         raise ValueError(f"人脸角度过大，请上传正脸照片 yaw={yaw}, pitch={pitch}, roll={row}")
+    # pitch yaw row 绘制到faces上
     cv2.imwrite(f'resources/upload/detected_{file_name}', face)
     aligned_face = align_faces_batch(faces, euler)[0]
     facebank_dir = os.path.join(facebank_path, account)
+    cv2.putText(aligned_face, f"yaw: {yaw:.2f}, pitch: {pitch:.2f}, roll: {row:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv2.imwrite(f'resources/upload/aligned_{file_name}', aligned_face)
-    cv2.imwrite(str(os.path.join(facebank_dir, file_name)), aligned_face)
-
+    # cv2.imwrite(str(os.path.join(facebank_dir, file_name)), aligned_face)
+    cv2.imwrite(str(os.path.join(facebank_dir, file_name)), face)
     facebank_map[account] = prepare_facebank(facebank_dir, model=mobilefacenet, force_rebuild=True)
     return facebank_dir
