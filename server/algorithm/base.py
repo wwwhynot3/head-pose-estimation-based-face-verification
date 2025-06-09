@@ -184,7 +184,7 @@ def cv2PutChineseText(img, text, position, textColor=(0, 255, 255), textSize=30)
     # 绘制文本
     draw.text(position, text, textColor, font=font_style)
     # 转换回OpenCV格式
-    return np.asarray(img)
+    return np.array(img)
 
 font_size = 25
 font_style = ImageFont.truetype(
