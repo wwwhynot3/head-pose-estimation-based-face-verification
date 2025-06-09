@@ -34,11 +34,11 @@ def process_frame(frame, account = facebank_default_account):
         return frame, [], []
     poses = face_pose_estimate_batch(hopenetlite, faces)
     aligned_faces = algorithm.face_alignment_euler.align_faces_batch(faces, poses)
-    timestamp = time.time()
-    cv2.imwrite(f'resources/upload/euler_{timestamp}.jpg', aligned_faces[0])
-    aligned_faces =  algorithm.face_alignment_landmark.align_faces_batch(aligned_faces, boxes, landmarks)
-    cv2.imwrite(f'resources/upload/landmark_{timestamp}.jpg', aligned_faces[0])
-    results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=0.4, model=mobilefacenet, account=account)
+    # timestamp = time.time()
+    # cv2.imwrite(f'resources/upload/euler_{timestamp}.jpg', aligned_faces[0])
+    # aligned_faces =  algorithm.face_alignment_landmark.align_faces_batch(aligned_faces, boxes, landmarks)
+    # cv2.imwrite(f'resources/upload/landmark_{timestamp}.jpg', aligned_faces[0])
+    results, scores = face_recognition_batch(image_batch=aligned_faces, threshold=0.3, model=mobilefacenet, account=account)
     # frame = frame.copy()
     # 防止内存可读性导致的错误
     if not frame.flags.writeable:
