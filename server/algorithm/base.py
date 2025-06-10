@@ -1,6 +1,8 @@
 import os.path
 import traceback
 from pathlib import Path
+from zoneinfo import ZoneInfo
+from datetime import datetime
 
 import cv2
 import numpy as np
@@ -103,7 +105,7 @@ hopenet_transform = trans.Compose([
         trans.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-
+beijing_time = datetime.now(ZoneInfo("Asia/Shanghai"))
 def prepare_facebank(facebank_path, model, force_rebuild=False):
     """
     准备特征库的核心方法，支持批量处理
